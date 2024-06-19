@@ -6,10 +6,9 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-
-	rnd "github.com/halicea/crudex/renderers"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"github.com/halicea/crudex/renderers"
 )
 
 type IRouter interface {
@@ -127,7 +126,7 @@ func (self *CrudCtrl[T]) WithFormBinder(handler FormBinder[T]) *CrudCtrl[T] {
 func (self *CrudCtrl[T]) List(c *gin.Context) {
 	var items []T
 	self.Db.Find(&items)
-	rnd.Render(c,
+	renderers.Render(c,
 		gin.H{fmt.Sprintf("%sList", self.ModelName): items, "Path": c.Request.URL.Path},
 		fmt.Sprintf("%s-list.html", self.ModelName))
 }
@@ -143,7 +142,7 @@ func (self *CrudCtrl[T]) Details(c *gin.Context) {
 	if err == nil {
 		var item T
 		self.Db.First(&item, id)
-		rnd.Render(c, gin.H{modelName: item, "Path": c.Request.URL.Path}, template)
+		renderers.Render(c, gin.H{modelName: item, "Path": c.Request.URL.Path}, template)
 	} else {
 		c.Error(err)
 		c.String(http.StatusBadRequest, fmt.Sprintf("Invalid ID for %s: %d", self.ModelName, id))
@@ -158,14 +157,14 @@ func (self *CrudCtrl[T]) Form(c *gin.Context) {
 	modelName := fmt.Sprintf("%s", self.ModelName)
 	idStr := c.Param("id")
 	if idStr == "" {
-		rnd.Render(c, gin.H{"Path": c.Request.URL.Path}, template)
+		renderers.Render(c, gin.H{"Path": c.Request.URL.Path}, template)
 		return
 	} else {
 		id, err := strconv.ParseUint(idStr, 10, 64)
 		if err == nil {
 			var item T
 			self.Db.First(&item, idStr)
-			rnd.Render(c, gin.H{modelName: item, "Path": c.Request.URL.Path}, template)
+			renderers.Render(c, gin.H{modelName: item, "Path": c.Request.URL.Path}, template)
 		} else {
 			c.Error(err)
 			c.String(http.StatusBadRequest, fmt.Sprintf("Invalid ID for %s: %d", self.ModelName, id))
