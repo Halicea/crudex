@@ -8,18 +8,12 @@ import (
 	"strings"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"github.com/halicea/crudex/renderers"
 )
 
 type IRouter interface {
 	gin.IRoutes
 	Group(string, ...gin.HandlerFunc) *gin.RouterGroup
 	BasePath() string
-}
-
-type IModel interface {
-	GetID() uint
-	SetID(id uint)
 }
 
 // FormBinder is a function that binds the form data to a model
