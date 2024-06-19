@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	rnd "github.com/42dotmk/crudex/renderers"
+	rnd "github.com/halicea/crudex/renderers"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )

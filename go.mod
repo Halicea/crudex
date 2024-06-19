@@ -1,4 +1,4 @@
-module github.com/42dotmk/crudex
+module github.com/halicea/crudex
 
 go 1.22
 
