@@ -1,4 +1,4 @@
-package renderers
+package crudex
 
 import "github.com/gin-gonic/gin"
 

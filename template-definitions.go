@@ -1,4 +1,4 @@
-package crud
+package crudex
 const tmplLayout = `{{/* generated file: [[.TemplateFileName]] */}}
 <!doctype html>
 <html>

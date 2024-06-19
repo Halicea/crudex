@@ -1,4 +1,4 @@
-package models
+package crudex
 
 import "gorm.io/gorm"
 
@@ -12,10 +12,11 @@ type BaseModel struct {
 	gorm.Model
 }
 
-func (self *BaseModel) GetID() uint {
+func (self BaseModel) GetID() uint {
     return self.ID
-	
-func (self *BaseModel) SetID(id uint) {
+}
+
+func (self BaseModel) SetID(id uint) {
     self.ID = id
 }
 	

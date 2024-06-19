@@ -1,4 +1,4 @@
-package renderers
+package crudex
 
 import (
 	"fmt"
