@@ -1,0 +1,20 @@
+# files/folders I've seen that we don't want to commit
+db.sqlite
+gin-bin
+example/
+.idea/
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Output of the go build command
+*.out
+
+# Compiled Object files, Static and Dynamic libs (remove the comment below if you use dep)
+*.o
+*.a
+
