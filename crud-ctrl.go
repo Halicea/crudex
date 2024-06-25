@@ -3,9 +3,11 @@ package crudex
 import (
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -48,30 +50,12 @@ func (self *CrudCtrl[T]) BasePath() string {
 	return self.Router.BasePath()
 }
 
-// Scaffold creates the CRUD controllers for the provided model, generates templates, and attaches them to the provided router
-func Scaffold[T IModel](r IRouter, db *gorm.DB) ICrudCtrl {
-	model := *new(T)
-	dst := "gen"
-
-	GenDetails(model, dst)
-	GenList(model, dst)
-	GenForm(model, dst)
-
-	//create routes for the model
-	modelType := extractType(model)
-	ctrlGroup := r.Group(fmt.Sprintf("/%s", strings.ToLower(modelType.Name())))
-	ctrl := New[T](db).OnRouter(ctrlGroup)
-	return ctrl
-}
-
 // New creates a new CRUD controller for the provided model
-func New[T IModel](db *gorm.DB, ) *CrudCtrl[T] {
+func New[T IModel](db *gorm.DB) *CrudCtrl[T] {
 	var name = fmt.Sprintf("%T", *new(T))
 	if strings.Contains(name, ".") {
 		name = strings.Split(name, ".")[1]
 	}
-	name = strings.ToLower(name)
-
 	return &CrudCtrl[T]{
 		FormBinder: DefaultFormHandler[T], // default form handler is used if none is provided
 		ModelName:  name,
@@ -79,14 +63,16 @@ func New[T IModel](db *gorm.DB, ) *CrudCtrl[T] {
 	}
 }
 
-// WithModelKeyName sets the name of the primaryKey of the model, we will search by this key
-// func (self *CrudCtrl[T]) WithModelKeyName(key string) *CrudCtrl[T]{
-//     if key == "" {
-//         panic("Invalid key name")
-//     }
-//     self.ModelKeyName = key
-//     return self
-// }
+func (self *CrudCtrl[T]) Scaffold(router IRouter) *CrudCtrl[T] {
+	model := *new(T)
+	rootDir := config.ScaffoldRootDir()
+	GenDetailsTmpl(model, rootDir)
+	GenListTmpl(model, rootDir)
+	GenFormTmpl(model, rootDir)
+	modelType := extractType(model)
+	ctrlGroup := router.Group(fmt.Sprintf("/%s", strings.ToLower(modelType.Name())))
+	return self.OnRouter(ctrlGroup)
+}
 
 // OnRouter attaches the CRUD routes to the provided router
 func (self *CrudCtrl[T]) OnRouter(r IRouter) *CrudCtrl[T] {
@@ -121,22 +107,21 @@ func (self *CrudCtrl[T]) List(c *gin.Context) {
 	var items []T
 	self.Db.Find(&items)
 	Render(c,
-		gin.H{fmt.Sprintf("%sList", self.ModelName): items, "Path": c.Request.URL.Path},
-		fmt.Sprintf("%s-list.html", self.ModelName))
+		gin.H{fmt.Sprintf("%sList", self.ModelName): &items, "Path": self.Router.BasePath()},
+		fmt.Sprintf("%s-list.html", strings.ToLower(self.ModelName)))
 }
 
 // Details is a handler that shows the details of a single item of the model
 // it is a GET request
 // !Requires the template to be named as modelName-details.html where the modelName is lowercased model name
 func (self *CrudCtrl[T]) Details(c *gin.Context) {
-	template := fmt.Sprintf("%s.html", self.ModelName)
-	modelName := fmt.Sprintf("%s", self.ModelName)
+	template := fmt.Sprintf("%s.html", strings.ToLower(self.ModelName))
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err == nil {
 		var item T
 		self.Db.First(&item, id)
-		Render(c, gin.H{modelName: item, "Path": c.Request.URL.Path}, template)
+		Render(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
 	} else {
 		c.Error(err)
 		c.String(http.StatusBadRequest, fmt.Sprintf("Invalid ID for %s: %d", self.ModelName, id))
@@ -147,18 +132,17 @@ func (self *CrudCtrl[T]) Details(c *gin.Context) {
 // it is a GET request
 // !Requires the template to be named as modelName-edit.html where the modelName is lowercased model name
 func (self *CrudCtrl[T]) Form(c *gin.Context) {
-	template := fmt.Sprintf("%s-form.html", self.ModelName)
-	modelName := fmt.Sprintf("%s", self.ModelName)
+	template := fmt.Sprintf("%s-form.html", strings.ToLower(self.ModelName))
 	idStr := c.Param("id")
 	if idStr == "" {
-		Render(c, gin.H{"Path": c.Request.URL.Path}, template)
+		Render(c, gin.H{"Path": self.Router.BasePath()}, template)
 		return
 	} else {
 		id, err := strconv.ParseUint(idStr, 10, 64)
 		if err == nil {
 			var item T
-			self.Db.First(&item, idStr)
-			Render(c, gin.H{modelName: item, "Path": c.Request.URL.Path}, template)
+			self.Db.First(&item, id)
+			Render(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
 		} else {
 			c.Error(err)
 			c.String(http.StatusBadRequest, fmt.Sprintf("Invalid ID for %s: %d", self.ModelName, id))
@@ -179,7 +163,7 @@ func (self *CrudCtrl[T]) Upsert(c *gin.Context) {
 		return
 	}
 	idStr := c.Param("id")
-    isNew := idStr == ""
+	isNew := idStr == ""
 	if !isNew {
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
@@ -216,7 +200,7 @@ func (self *CrudCtrl[T]) Delete(c *gin.Context) {
 	}
 	var item T
 	self.Db.Delete(&item, id)
-	c.Header("HX-Redirect", fmt.Sprintf("%s%s", c.Request.URL.Path, self.ModelName))
+	c.Header("HX-Redirect", self.Router.BasePath())
 	c.String(http.StatusOK, "Deleted")
 	c.Abort()
 }
@@ -245,6 +229,15 @@ func BindForm[T any](r *http.Request, out *T) error {
 	return nil
 }
 
+// ScaffoldIndex creates a simple index page that lists all the controllers
+func ScaffoldIndex(r IRouter, fileName string, controllers ...ICrudCtrl) gin.IRoutes {
+	GenLayout(fileName, controllers)
+	return r.GET("/", func(c *gin.Context) {
+		RenderWithConfig(c, gin.H{"Path": r.BasePath()}, filepath.Base(fileName), NewConfig().WithEnableLayoutOnNonHxRequest(false))
+	})
+}
+
+// DefaultFormHandler is a default form binder that binds the form data to a model using the form field names as the model field names
 func DefaultFormHandler[T IModel](c *gin.Context, out *T) error {
 	if err := c.Request.ParseForm(); err != nil {
 		return err

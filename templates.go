@@ -3,9 +3,18 @@ package crudex
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"text/template"
+
+	"github.com/gin-gonic/gin"
+)
+
+const (
+	SCAFFOLD_ALWAYS = iota
+	SCAFFOLD_IF_NOT_EXISTS
+	SCAFFOLD_NEVER
 )
 
 type ModelDescriptor struct {
@@ -19,20 +28,9 @@ type NewDescriptorConf struct {
 	RootDir            string
 	ModelNameSuffix    string
 	TemplateNameSuffix string
-    //used to prefix the template name (this allows to override some templates)
-    TemplateNamePrefix string
-}
 
-var templateFuncs = template.FuncMap{
-	"RenderTypeInput": RenderTypeInput,
-}
-func extractType(data interface{}) reflect.Type {
-	modelType := reflect.TypeOf(data)
-    val := reflect.ValueOf(data)
-	if val.Kind() == reflect.Ptr || val.Kind() == reflect.Interface {
-		modelType = val.Elem().Type()
-	}
-    return modelType
+	//used to prefix the template name (this allows to override some templates)
+	TemplateNamePrefix string
 }
 
 func NewDescriptor(data interface{}, opts *NewDescriptorConf) *ModelDescriptor {
@@ -44,7 +42,7 @@ func NewDescriptor(data interface{}, opts *NewDescriptorConf) *ModelDescriptor {
 		}
 	}
 	rootDir := opts.RootDir
-    modelType := extractType(data)
+	modelType := extractType(data)
 	baseName := modelType.Name()
 	baseNameLower := strings.ToLower(baseName)
 
@@ -73,10 +71,16 @@ func NewDescriptor(data interface{}, opts *NewDescriptorConf) *ModelDescriptor {
 	}
 }
 
-func (md *ModelDescriptor) Flush(definition string) error {
+func (md *ModelDescriptor) Flush(definition string, strategy ScaffoldStrategy) error {
+	if !shouldScaffold(strategy, md.TemplateFileName) {
+		if gin.IsDebugging() {
+			fmt.Printf("Skipping scaffold of %s\n", md.TemplateFileName)
+		}
+		return nil
+	}
 	tmpl := template.Must(template.New(md.Name).
 		Delims("[[", "]]").
-		Funcs(templateFuncs).
+		Funcs(config.ScaffoldFuncs()).
 		Parse(definition))
 	tmplFile, err := os.Create(md.TemplateFileName)
 	defer tmplFile.Close()
@@ -92,39 +96,39 @@ func (md *ModelDescriptor) Flush(definition string) error {
 
 func FlushAll(dst string, models ...interface{}) {
 	for _, m := range models {
-		GenDetails(m, dst)
-		GenList(m, dst)
-		GenForm(m, dst)
+		GenDetailsTmpl(m, dst)
+		GenListTmpl(m, dst)
+		GenFormTmpl(m, dst)
 	}
 }
 
-func GenDetails(data interface{}, rootDir string) {
+func GenDetailsTmpl(data interface{}, rootDir string) {
 	err := NewDescriptor(data, &NewDescriptorConf{
 		RootDir: rootDir,
-	}).Flush(tmplDetail)
+	}).Flush(config.DetailScaffold(), config.ScaffoldStrategy())
 
 	if err != nil {
 		panic(err)
 	}
 }
 
-func GenList(data interface{}, rootDir string) {
+func GenListTmpl(data interface{}, rootDir string) {
 	err := NewDescriptor(data, &NewDescriptorConf{
 		RootDir:            rootDir,
 		TemplateNameSuffix: "list",
 		ModelNameSuffix:    "List",
-	}).Flush(tmplList)
+	}).Flush(config.ListScaffold(), config.ScaffoldStrategy())
 
 	if err != nil {
 		panic(err)
 	}
 }
 
-func GenForm(data interface{}, rootDir string) {
+func GenFormTmpl(data interface{}, rootDir string) {
 	err := NewDescriptor(data, &NewDescriptorConf{
 		RootDir:            rootDir,
 		TemplateNameSuffix: "form",
-	}).Flush(tmplForm)
+	}).Flush(config.FormScaffold(), config.ScaffoldStrategy())
 
 	if err != nil {
 		panic(err)
@@ -132,31 +136,37 @@ func GenForm(data interface{}, rootDir string) {
 }
 
 type MenuItem struct {
-    Title string
-    Path   string
+	Title string
+	Path  string
 }
 
-func GenLayout(controllers []ICrudCtrl, rootDir string) {
-    fileName := fmt.Sprintf("%s/%s", rootDir, "layout.html")
-    data := struct {
-        TemplateFileName string
-        Menu []MenuItem
-    }{
-        Menu: []MenuItem{},
-        TemplateFileName: fileName,
-    }
+func GenLayout(fileName string, controllers []ICrudCtrl) {
+	if !shouldScaffold(config.ScaffoldStrategy(), fileName) {
+		if gin.IsDebugging() {
+			fmt.Printf("Skipping scaffold of %s\n", fileName)
+		}
+		return
+	}
 
-    for _, ctrl := range controllers {
-        data.Menu = append(data.Menu, MenuItem{
-            Title: ctrl.GetModelName(),
-            Path: ctrl.BasePath(),
-        })
-    }
+	data := struct {
+		TemplateFileName string
+		Menu             []MenuItem
+	}{
+		Menu:             []MenuItem{},
+		TemplateFileName: fileName,
+	}
 
-	tmpl := template.Must(template.New(fileName).
+	for _, ctrl := range controllers {
+		data.Menu = append(data.Menu, MenuItem{
+			Title: ctrl.GetModelName(),
+			Path:  ctrl.BasePath(),
+		})
+	}
+
+	tmpl := template.Must(template.New(filepath.Base(fileName)).
 		Delims("[[", "]]").
-		Funcs(templateFuncs).
-		Parse(tmplLayout))
+		Funcs(config.ScaffoldFuncs()).
+		Parse(config.LayoutScaffold()))
 
 	tmplFile, err := os.Create(fileName)
 	defer tmplFile.Close()
@@ -169,16 +179,27 @@ func GenLayout(controllers []ICrudCtrl, rootDir string) {
 	}
 }
 
-func RenderTypeInput(field reflect.StructField) string {
-	switch field.Type.Kind() {
-	case reflect.String:
-		return fmt.Sprintf(`<input type="text" name="%s">`, field.Name)
-	case reflect.Int, reflect.Float64:
-		return fmt.Sprintf(`<input type="number" name="%s">`, field.Name)
-	case reflect.Bool:
-		return fmt.Sprintf(`<input type="checkbox" name="%s">`, field.Name)
+func shouldScaffold(strategy ScaffoldStrategy, fileName string) bool {
+	switch strategy {
+	case SCAFFOLD_ALWAYS:
+		return true
+	case SCAFFOLD_NEVER:
+		return false
+	case SCAFFOLD_IF_NOT_EXISTS:
+		_, err := os.Stat(fileName)
+		return err != nil
+	default:
+		return false
 	}
-	panic(fmt.Sprintf("unsupported type: %s for field %s", field.Type.Kind().String(), field.Name))
+}
+
+func extractType(data interface{}) reflect.Type {
+	modelType := reflect.TypeOf(data)
+	val := reflect.ValueOf(data)
+	if val.Kind() == reflect.Ptr || val.Kind() == reflect.Interface {
+		modelType = val.Elem().Type()
+	}
+	return modelType
 }
 
 func contains(allows []reflect.Kind, checked reflect.Kind) bool {

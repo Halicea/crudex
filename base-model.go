@@ -2,7 +2,6 @@ package crudex
 
 import "gorm.io/gorm"
 
-
 type IModel interface {
 	GetID() uint
 	SetID(id uint)
@@ -19,4 +18,3 @@ func (self BaseModel) GetID() uint {
 func (self BaseModel) SetID(id uint) {
     self.ID = id
 }
-	

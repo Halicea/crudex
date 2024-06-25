@@ -10,25 +10,12 @@ import (
 )
 
 // config is the default configuration for the Render function
-var config = NewConfig()
+var config IConfig = NewConfig()
 
-// sets the default configuration for the Render function
-func SetupDefaultRenderer(app *gin.Engine, options *Config) {
-	if options.DefaultLayout != "" {
-		config.DefaultLayout = options.DefaultLayout
-	}
-
-	if options.LayoutDataFunc != nil {
-		config.LayoutDataFunc = options.LayoutDataFunc
-	}
-	if options.EnableLayoutOnNonHxRequest != config.EnableLayoutOnNonHxRequest {
-		config.EnableLayoutOnNonHxRequest = options.EnableLayoutOnNonHxRequest
-	}
-
-	if len(options.TemplatesDirs) > 0 {
-		config.TemplatesDirs = options.TemplatesDirs
-	}
-	app.HTMLRender = loadTemplates(config.TemplatesDirs...)
+// sets the configuration for the Render function and returns the renderer
+func NewRenderer(options IConfig) multitemplate.Renderer {
+	config = options
+	return loadTemplates(config.TemplateDirs()...)
 }
 
 // Render is a function that renders a template with the given data
@@ -40,14 +27,21 @@ func SetupDefaultRenderer(app *gin.Engine, options *Config) {
 // it uses the default hxConfig to render the template
 // See `RenderWithConfig` for more control over the rendering
 func Render(c *gin.Context, data gin.H, templateName string) {
-	hxAwareRender(c, data, templateName, config.DefaultLayout, config)
+	hxAwareRender(c, data, templateName,
+		config.LayoutName(),
+		config.EnableLayoutOnNonHxRequest())
 }
 
 // RenderWithConfig is a function that renders a template with the given data and the render configuration
 // See Render for more information on the rendering
 // See Config for more information on the configuration
-func RenderWithConfig(c *gin.Context, data gin.H, templateName string, conf *Config) {
-	hxAwareRender(c, data, templateName, config.DefaultLayout, conf)
+func RenderWithConfig(c *gin.Context, data gin.H, templateName string, conf IConfig) {
+	if conf.LayoutDataFunc() != nil {
+		config.LayoutDataFunc()(c, data)
+	}
+	hxAwareRender(c, data, templateName,
+		config.LayoutName(),
+		conf.EnableLayoutOnNonHxRequest())
 }
 
 // loadTemplates is a helper function that loads the templates from the given directories
@@ -63,7 +57,7 @@ func loadTemplates(templatesDirs ...string) multitemplate.Renderer {
 			panic(err)
 		}
 		for _, file := range files {
-            name := filepath.Base(file)
+			name := filepath.Base(file)
 			if gin.IsDebugging() {
 				fmt.Fprint(gin.DefaultWriter, "Loading template: ", file, " with name ", name, "\n")
 			}
@@ -72,14 +66,12 @@ func loadTemplates(templatesDirs ...string) multitemplate.Renderer {
 	}
 	return r
 }
+
 // hxAwareRender is a helper function that renders the data based on the request accept header and the Hx-Request header
-func hxAwareRender(c *gin.Context, data gin.H, templateName string, layout string, conf *Config) {
-	if c.Request.Header.Get("Hx-Request") == "true" || !conf.EnableLayoutOnNonHxRequest {
+func hxAwareRender(c *gin.Context, data gin.H, templateName string, layout string, enableLayoutOnNonHxRequest bool) {
+	if c.Request.Header.Get("Hx-Request") == "true" || !enableLayoutOnNonHxRequest {
 		c.HTML(http.StatusOK, templateName, data)
 	} else {
-		if conf.LayoutDataFunc != nil {
-			config.LayoutDataFunc(data)
-		}
 		render(c, data, layout)
 	}
 }

@@ -1,0 +1,11 @@
+{{/* generated file: [[.TemplateFileName]] */}}
+<section>
+    [[$modelName := .Name]]
+    <h1>[[$modelName]]</h1>
+    <div>[[range .Fields]]
+        <div>
+            <label for="[[.Name]]">[[.Name]]</label>
+            <div>{{.[[$modelName]].[[.Name]]}}</div>
+        </div>
+    [[end]]</div>
+</section>

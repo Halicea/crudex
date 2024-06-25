@@ -1,0 +1,34 @@
+{{/* generated file: [[.TemplateFileName]] */}}
+<!doctype html>
+<html>
+  <head>
+    <title>Index</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+
+    <script src="https://unpkg.com/htmx.org@1.7.0" integrity="sha384-EzBXYPt0/T6gxNp0nuPtLkmRpmDBbjg6WmCUZRLXBBwYYmwAUxzlSGej0ARHX0Bo" crossorigin="anonymous" defer></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/foundation-sites@6.8.1/dist/css/foundation.min.css" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/foundation-sites@6.8.1/dist/js/foundation.min.js" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <ul class="menu">
+          <li><button type="button" class="button" href="{{.Path}}">Home</button></li>
+          [[range .Menu]]<li><button type="button" class="button" hx-get="[[ .Path ]]" hx-target="#main" hx-push-url="true">[[ .Title ]]</button></li>
+          [[end]]
+        </ul>
+      </nav>
+    </header>
+    <main> 
+        <div class="content" id="main">
+        </div>
+    </main>
+    <footer>
+      <p>Footer</p>
+    </footer>
+    <script>
+        $(document).foundation();
+    </script>
+  </body>
+</html>
