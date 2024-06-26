@@ -5,7 +5,8 @@
     <button type="button" class="button" hx-get="new" hx-target="#main">New</button>
     <table>
         <thead>
-            <tr>[[range .Fields]]
+            <tr>
+                <th>ID</th>[[range .Fields]]
                 <th>[[.Name]]</th>[[end]]
                 <th> Actions </th>
             </tr>

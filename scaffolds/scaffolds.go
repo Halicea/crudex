@@ -1,27 +1,29 @@
 package scaffolds
 
 import (
+	_ "embed"
 	"os"
-    _ "embed"
 )
-
 
 //go:embed layout.html
 var Layout string
+
 //go:embed detail.html
 var Detail string
+
 //go:embed list.html
 var List string
+
 //go:embed form.html
 var Form string
 
 func ExportDefaultScaffoldTemplates() error {
-    if _, err := os.Stat("scaffolds"); os.IsNotExist(err) {
-        err := os.MkdirAll("scaffolds", 0755)
-        if err != nil {
-            return err
-        }
-    }
+	if _, err := os.Stat("scaffolds"); os.IsNotExist(err) {
+		err := os.MkdirAll("scaffolds", 0755)
+		if err != nil {
+			return err
+		}
+	}
 
 	err := os.WriteFile("scaffolds/layout.html", []byte(Layout), 0644)
 	if err != nil {

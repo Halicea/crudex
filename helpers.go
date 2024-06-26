@@ -1,45 +1,53 @@
 package crudex
 
 import (
-	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 )
 
-type ScaffoldStrategy int
-
-func RenderTypeInput(modelName string, field reflect.StructField) string {
-	switch field.Type.Kind() {
-	case reflect.String:
-		return fmt.Sprintf(`<input type="text" name="%s">{{.%s.%s}}</input>`, field.Name, modelName, field.Name)
-	case reflect.Int, reflect.Float64:
-		return fmt.Sprintf(`<input type="number" name="%s">{{.%s.%s}}</input>`, field.Name, modelName, field.Name)
-	case reflect.Bool:
-		return fmt.Sprintf(`<input type="checkbox" name="%s">{{.%s.%s}}</input>`, field.Name, modelName, field.Name)
-	}
-	panic(fmt.Sprintf("unsupported type: %s for field %s", field.Type.Kind().String(), field.Name))
-}
 
 var cache = map[string]string{}
 
-func readContents(fname string) (string, error) {
-	if f, ok := cache[fname]; ok {
-		return f, nil
+// readContentsOrDefault reads the file if it exists, otherwise returns the default content.
+//
+// If useCache is true it tries to read the file from the cache first and if it is not
+// found there it reads the file from the disk and caches it for any subsequent calls.
+func readContentsOrDefault(filename, defaultContent string, useCache bool) string {
+	fileContent, error := readContents(filename, useCache)
+	if error == nil {
+		return fileContent
 	}
+	return defaultContent
+}
+
+// readContents reads the contents of a file and returns it as a string
+//
+// If useCache is true it tries to read the file from the cache first and if it is not
+// found there it reads the file from the disk and caches it for any subsequent calls.
+func readContents(fname string, useCache bool) (string, error) {
+	if useCache {
+		if f, ok := cache[fname]; ok {
+			return f, nil
+		}
+	}
+
 	if _, err := os.Stat(fname); err == nil {
 		f, err := os.ReadFile(fname)
 		if err != nil {
 			return "", err
 		}
-		cache[fname] = string(f)
-		return cache[fname], nil
+		if useCache {
+			cache[fname] = string(f)
+			return cache[fname], nil
+		} else {
+			return string(f), nil
+		}
 	}
 	return "", fmt.Errorf("file not found: %s", fname)
 }
 
-func WriteContents(fname, content string) string {
+func writeContents(fname, content string, useCache bool) string {
 	//check if the directory exists
 	if _, err := os.Stat(filepath.Dir(fname)); os.IsNotExist(err) {
 		err := os.MkdirAll(filepath.Dir(fname), 0755)
@@ -47,8 +55,9 @@ func WriteContents(fname, content string) string {
 			panic(err)
 		}
 	}
-
-	cache[fname] = content
+	if useCache {
+		cache[fname] = content
+	}
 	err := os.WriteFile(fname, []byte(content), 0644)
 	if err != nil {
 		panic(err)

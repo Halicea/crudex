@@ -1,6 +1,8 @@
 package crudex
 
 import (
+	"flag"
+	"strings"
 	"text/template"
 
 	"github.com/gin-gonic/gin"
@@ -58,10 +60,10 @@ type Config struct {
 	exportScaffolds bool
 	// The func map passed to the templates so they can use the functions defined
 	scaffoldFuncs  template.FuncMap
-	listScaffold   string
-	detailScaffold string
-	formScaffold   string
-	layoutScaffold string
+	listScaffold   func() string
+	detailScaffold func() string
+	formScaffold   func() string
+	layoutScaffold func() string
 
 	// Which template directories to scan for templates
 	templateDirs []string
@@ -86,10 +88,10 @@ func NewConfig() *Config {
 		},
 		exportScaffolds: true,
 
-		layoutScaffold:  scaffolds.Layout,
-		listScaffold:    scaffolds.List,
-		detailScaffold:  scaffolds.Detail,
-		formScaffold:    scaffolds.Form,
+		layoutScaffold: func() string { return readContentsOrDefault("scaffolds/layout.html", scaffolds.Layout, true) },
+		listScaffold:   func() string { return readContentsOrDefault("scaffolds/list.html", scaffolds.List, true) },
+		detailScaffold: func() string { return readContentsOrDefault("scaffolds/detail.html", scaffolds.Detail, true) },
+		formScaffold:   func() string { return readContentsOrDefault("scaffolds/form.html", scaffolds.Form, true) },
 
 		layoutName:                 "index.html",
 		enableLayoutOnNonHxRequest: true,
@@ -112,28 +114,28 @@ func (self *Config) ScaffoldRootDir() string {
 //
 // Note: the delimiters are `[[` `]]`
 func (self *Config) ListScaffold() string {
-	return self.listScaffold
+	return self.listScaffold()
 }
 
 // based on what template to create the details[T] template
 //
 // Note: the delimiters are `[[` `]]`
 func (self *Config) DetailScaffold() string {
-	return self.detailScaffold
+	return self.detailScaffold()
 }
 
 // based on what template to create the form[T] template used for edit and create
 //
 // Note: the delimiters are `[[` `]]`
 func (self *Config) FormScaffold() string {
-	return self.formScaffold
+	return self.formScaffold()
 }
 
 // based on what template to create the layout template used for listing all the models
 //
 // Note: the delimiters are `[[` `]]`
 func (self *Config) LayoutScaffold() string {
-	return self.layoutScaffold
+	return self.layoutScaffold()
 }
 
 // The func map passed to the templates so they can use the functions defined
@@ -163,8 +165,9 @@ func (self *Config) LayoutDataFunc() func(c *gin.Context, data gin.H) {
 
 // ExportScaffolds gets if the scaffold templates should be exported to the file system
 func (self *Config) ExportScaffolds() bool {
-    return self.exportScaffolds
+	return self.exportScaffolds
 }
+
 // WithScaffoldStrategy sets the strategy to use when creating the scaffolded templates
 // The default is ScaffoldCreateAlways, options are ScaffoldCreateAlways, ScaffoldCreateIfNotExist, ScaffoldCreateNever
 // This option is not used at the moment
@@ -180,25 +183,25 @@ func (self *Config) WithScaffoldRootDir(value string) *Config {
 }
 
 // WithListScaffold sets the scaffold template that generages the list[T] template
-func (self *Config) WithListScaffold(value string) *Config {
+func (self *Config) WithListScaffold(value func() string) *Config {
 	self.listScaffold = value
 	return self
 }
 
-// WithDetailScaffold sets the scaffold template that generages the detail[T] template
-func (self *Config) WithDetailScaffold(value string) *Config {
+// WithDetailScaffold sets the scaffold template function that generages the detail[T] template
+func (self *Config) WithDetailScaffold(value func() string) *Config {
 	self.detailScaffold = value
 	return self
 }
 
-// WithFormScaffold sets the scaffold template that generages the form[T] template
-func (self *Config) WithFormScaffold(value string) *Config {
+// WithFormScaffold sets the scaffold template function that generages the form[T] template
+func (self *Config) WithFormScaffold(value func() string) *Config {
 	self.formScaffold = value
 	return self
 }
 
-// WithLayoutScaffold sets the scaffold template that generates the layout template used for listing all the models
-func (self *Config) WithLayoutScaffold(value string) *Config {
+// WithLayoutScaffold sets the scaffold template function that generates the layout template used for listing all the models
+func (self *Config) WithLayoutScaffold(value func() string) *Config {
 	self.layoutScaffold = value
 	return self
 }
@@ -235,6 +238,63 @@ func (c *Config) WithEnableLayoutOnNonHxRequest(enableLayoutOnNonHxRequest bool)
 
 // WithExportScaffolds gets if the scaffold templates should be exported to the file system
 func (self *Config) WithExportScaffolds(export bool) *Config {
-    self.exportScaffolds = export
-    return self
+	self.exportScaffolds = export
+	return self
+}
+
+const (
+    ArgStrategyAlways    = "always"
+    ArgStrategyIfNotExists = "newonly"
+    ArgStrategyNever     = "never"
+)
+
+func (self *Config) WithCommandLineArgs(args []string) *Config {
+	var templateDirs string
+	var layout string
+	var hxAware string
+	var scaffoldExportBases string
+	var scaffoldDir string
+	var scaffoldStrategy string
+	flags := flag.NewFlagSet("crudex", flag.PanicOnError)
+	flags.StringVar(&templateDirs, "crud-template-dirs", "", "Template directories")
+	flags.StringVar(&layout, "crud-layout", "", "The main layout to use for the hxAware rendering")
+	flags.StringVar(&hxAware, "crud-hx-aware", "", "Template directories")
+	flags.StringVar(&scaffoldExportBases, "crud-export-bases", "", "Wether to export the templates needed to generate the scaffolds")
+	flags.StringVar(&scaffoldDir, "crud-scaffold-dir", "", "Where to export the generated templates")
+	flags.StringVar(&scaffoldStrategy, "crud-strategy", "", `When to export the templates
+    - always: Exports even if the files already exist(any changes will be overwritten)
+    - newonly: Exports a template only if the template file does not already exist
+    - never: No templates will be exported`)
+
+	if error := flags.Parse(args); error != nil {
+		panic(error)
+	}
+	if templateDirs != "" {
+		self.WithTemplateDirs(strings.Split(templateDirs, ",")...)
+	}
+	if layout != "" {
+		self.WithLayoutName(layout)
+	}
+	if hxAware != "" {
+		self.WithEnableLayoutOnNonHxRequest(hxAware == "true")
+	}
+	if scaffoldExportBases != "" {
+		self.WithExportScaffolds(scaffoldExportBases == "true")
+	}
+	if scaffoldDir != "" {
+		self.WithScaffoldRootDir(scaffoldDir)
+	}
+	if scaffoldStrategy != "" {
+		switch scaffoldStrategy {
+		case ArgStrategyAlways:
+			self.WithScaffoldStrategy(SCAFFOLD_ALWAYS)
+		case ArgStrategyIfNotExists:
+			self.WithScaffoldStrategy(SCAFFOLD_IF_NOT_EXISTS)
+		case ArgStrategyNever:
+			self.WithScaffoldStrategy(SCAFFOLD_NEVER)
+        default:
+            panic("Invalid strategy")
+		}
+	}
+	return self
 }

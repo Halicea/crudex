@@ -11,31 +11,62 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type ScaffoldStrategy int
+
 const (
+	// SCAFFOLD_ALWAYS will always scaffold the model templates
 	SCAFFOLD_ALWAYS = iota
+	// SCAFFOLD_IF_NOT_EXISTS will only scaffold the model templates if they do not exist
 	SCAFFOLD_IF_NOT_EXISTS
+	// SCAFFOLD_NEVER will never scaffold the model templates
 	SCAFFOLD_NEVER
 )
 
+// ModelDescriptor is a struct that holds the information needed to scaffold a model.
+// It is used to scaffold the templates for the given model
 type ModelDescriptor struct {
-	Type             reflect.Type
-	Name             string
+	// Type is the reflect.Type of the model
+	Type reflect.Type
+
+	// Name is the name of the model
+	Name string
+
+	// TemplateFileName is the name of the file where the template will be written
 	TemplateFileName string
-	Fields           []reflect.StructField
+
+	// Fields is a slice of reflect.StructField that represent the fields of the model that will be scaffolded
+	Fields []reflect.StructField
 }
 
-type NewDescriptorConf struct {
-	RootDir            string
-	ModelNameSuffix    string
-	TemplateNameSuffix string
+// LayoutData is a struct that holds the data needed to scaffold the layout template
+type LayoutData struct {
+	TemplateFileName string
+	Menu             []MenuItem
+}
 
-	//used to prefix the template name (this allows to override some templates)
+// MenuItem is a struct that holds the data needed to render a link to a model page in the layout template
+type MenuItem struct {
+	Title string
+	Path  string
+}
+
+// ModelDescriptorConfiguration is a struct that is used to create a ModelDescriptor
+// it defines the rules for the creation of the ModelDescriptor
+type ModelDescriptorConfiguration struct {
+    // RootDir is the root directory where the templates will be written.
+    // It is used to create the TemplateFileName of the ModelDescriptor
+	RootDir            string
+    // ModelNameSuffix is the suffix that will be added to the model name
+	ModelNameSuffix    string
+    // TemplateNameSuffix is the suffix that will be added to the template name
+	TemplateNameSuffix string
+	// TemplateNamePrefix is the prefix that will be added to the template name
 	TemplateNamePrefix string
 }
 
-func NewDescriptor(data interface{}, opts *NewDescriptorConf) *ModelDescriptor {
+func NewDescriptor(data interface{}, opts *ModelDescriptorConfiguration) *ModelDescriptor {
 	if opts == nil {
-		opts = &NewDescriptorConf{
+		opts = &ModelDescriptorConfiguration{
 			RootDir:            "templates",
 			ModelNameSuffix:    "",
 			TemplateNameSuffix: "",
@@ -103,7 +134,7 @@ func FlushAll(dst string, models ...interface{}) {
 }
 
 func GenDetailsTmpl(data interface{}, rootDir string) {
-	err := NewDescriptor(data, &NewDescriptorConf{
+	err := NewDescriptor(data, &ModelDescriptorConfiguration{
 		RootDir: rootDir,
 	}).Flush(config.DetailScaffold(), config.ScaffoldStrategy())
 
@@ -113,7 +144,7 @@ func GenDetailsTmpl(data interface{}, rootDir string) {
 }
 
 func GenListTmpl(data interface{}, rootDir string) {
-	err := NewDescriptor(data, &NewDescriptorConf{
+	err := NewDescriptor(data, &ModelDescriptorConfiguration{
 		RootDir:            rootDir,
 		TemplateNameSuffix: "list",
 		ModelNameSuffix:    "List",
@@ -125,7 +156,7 @@ func GenListTmpl(data interface{}, rootDir string) {
 }
 
 func GenFormTmpl(data interface{}, rootDir string) {
-	err := NewDescriptor(data, &NewDescriptorConf{
+	err := NewDescriptor(data, &ModelDescriptorConfiguration{
 		RootDir:            rootDir,
 		TemplateNameSuffix: "form",
 	}).Flush(config.FormScaffold(), config.ScaffoldStrategy())
@@ -133,11 +164,6 @@ func GenFormTmpl(data interface{}, rootDir string) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-type MenuItem struct {
-	Title string
-	Path  string
 }
 
 func GenLayout(fileName string, controllers []ICrudCtrl) {
@@ -148,10 +174,7 @@ func GenLayout(fileName string, controllers []ICrudCtrl) {
 		return
 	}
 
-	data := struct {
-		TemplateFileName string
-		Menu             []MenuItem
-	}{
+	data := LayoutData{
 		Menu:             []MenuItem{},
 		TemplateFileName: fileName,
 	}
