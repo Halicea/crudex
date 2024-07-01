@@ -18,3 +18,5 @@ example/
 *.o
 *.a
 
+**/gen/
+*.db
