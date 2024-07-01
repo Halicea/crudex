@@ -8,6 +8,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/halicea/crudex/scaffolds"
 )
+//go:generate stringer -type=ScaffoldStrategy
+type ScaffoldStrategy int
+const (
+	// SCAFFOLD_ALWAYS will always scaffold the model templates
+	SCAFFOLD_ALWAYS ScaffoldStrategy = iota
+	// SCAFFOLD_IF_NOT_EXISTS will only scaffold the model templates if they do not exist
+	SCAFFOLD_IF_NOT_EXISTS
+	// SCAFFOLD_NEVER will never scaffold the model templates
+	SCAFFOLD_NEVER
+)
+
 
 type IConfig interface {
 
@@ -79,12 +90,15 @@ type Config struct {
 }
 
 // NewConfig creates a new configuration crud configuration containing all the defaults
+func DefaultConfig() *Config {
+    return NewConfig().SetAsDefault()
+}
 func NewConfig() *Config {
 	return &Config{
 		scafoldCreateStrategy: SCAFFOLD_ALWAYS,
 		scaffoldRootDir:       "gen",
 		scaffoldFuncs: template.FuncMap{
-			"RenderTypeInput": RenderTypeInput,
+			"RenderTypeInput": RenderInputType,
 		},
 		exportScaffolds: true,
 
@@ -247,6 +261,11 @@ const (
     ArgStrategyIfNotExists = "newonly"
     ArgStrategyNever     = "never"
 )
+
+func (self *Config) SetAsDefault() (config *Config) {
+    config = self
+    return self
+}
 
 func (self *Config) WithCommandLineArgs(args []string) *Config {
 	var templateDirs string

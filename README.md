@@ -99,9 +99,9 @@ There are three parts that you can further customize to your needs:
     
 ## Wishlist
 
-- [X] Start with tests
-- [X] Add more customization options
-- [X] Initial README
+- [X] **[P1]** Start with tests
+- [X] **[P1]** Add more customization options
+- [X] **[P1]** Initial README
 
 - [ ] **[P3]** Use source generators to scaffold the templates (through `go generate`)
 - [ ] **[P3]** Create separate package for the template scaffolding and leave just the controllers in this package
