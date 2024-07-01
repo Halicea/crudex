@@ -15,11 +15,13 @@ At this time there is no specific configuration for the access permissions but y
 
 ## Installation
 ```bash
-go get 42.mk/crudex
+go get github.com/halicea/crudex
 ```
 
-## How to use
 
+## Docs 
+https://pkg.go.dev/github.com/halicea/crudex
+## How to use
 ```go
 package main
 
