@@ -49,6 +49,7 @@ func main() {
 
 	// you can also scaffold an index page for your models
 	crudex.ScaffoldIndex(app, "gen/index.html",
+        // scaffold will generate the templates and attach this controller routes to the router
 		crudex.New[Fruit](db).Scaffold(app))
 	//you can also create your own controllers and use the admin to scaffold the pages
 	app.Run(":8080")
@@ -69,3 +70,46 @@ For every model there are six(6) routes created by default:
 - `PUT /model/:id` Updates a record and redirects to the list.
   It accepts either form data or json data
 - `DELETE /model/:id` Deletes a record and redirects to the list
+
+### Cusomization
+There are three parts that you can further customize to your needs:
+
+1. **Generated templates**
+    
+    The templates are exported the first time you create a new model (by default in the 'gen' directory).
+    You can modify them in the way it is suitable for your use case
+
+
+2. **Scaffold templates**
+    
+    Scaffold templates are the templates that generate the model templates used by the `CrudCtrl[T]`.
+
+    You can export them once by invoking `crudex --export-scaffolds` in the root of your module. 
+    This will create a `scaffolds` directory that will be further used to generate the CRUD templates.
+
+    This scaffold templates can be customized to generate new CRUD templates with the look, feel and functionality suitable to You.
+
+3. **Controller**
+
+    You can create your own controller that builds on top CrudCtrl[T]
+
+    This way you can override the `List`, `Details`, `Form`, `List` handlers and add your own.
+
+    Behind the scenes crudex uses `gin` handlers, so you can build any route without additional need to learn something new.
+    
+## Wishlist
+
+- [X] Start with tests
+- [X] Add more customization options
+- [X] Initial README
+
+- [ ] **[P3]** Use source generators to scaffold the templates (through `go generate`)
+- [ ] **[P3]** Create separate package for the template scaffolding and leave just the controllers in this package
+- [ ] **[P3]** Add more documentation 
+- [ ] **[P3]** Fully document the public methods, interfaces and structs
+- [ ] **[P2]** Add more tests
+- [ ] **[P2]** Allow the possibility for different UI packages to be glued to it
+     - For example:
+        - generate UI templates with daisyUI and React
+        - generate UI templates with HTMX and tailwind
+        - e.t.c
