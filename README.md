@@ -116,14 +116,14 @@ There are three parts that you can further customize to your needs:
 - [X] **[P1]** Start with tests
 - [X] **[P1]** Add more customization options
 - [X] **[P1]** Initial README
-
-- [ ] **[P3]** Use source generators to scaffold the templates (through `go generate`)
-- [ ] **[P3]** Create separate package for the template scaffolding and leave just the controllers in this package
-- [ ] **[P3]** Add more documentation 
-- [ ] **[P3]** Fully document the public methods, interfaces and structs
-- [ ] **[P2]** Add more tests
-- [ ] **[P2]** Allow the possibility for different UI packages to be glued to it
+- [X] **[P2]** Allow the possibility for different UI packages to be glued to it
      - For example:
         - generate UI templates with daisyUI and React
         - generate UI templates with HTMX and tailwind
         - e.t.c
+
+- [ ] **[P2]** Add more documentation 
+- [ ] **[P2]** Add more tests
+- [ ] **[P3]** Use source generators to scaffold the templates (through `go generate`)
+- [ ] **[P3]** Create separate package for the template scaffolding and leave just the controllers in this package
+- [ ] **[P3]** Fully document the public methods, interfaces and structs
