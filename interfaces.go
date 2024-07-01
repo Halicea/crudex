@@ -27,6 +27,7 @@ type IConfig interface {
 	// where to place the scaffolded templates
 	ScaffoldRootDir() string
 
+    // the scaffold map contains all the scaffold templates and is used to generate the model templates
 	ScaffoldMap() IScaffoldMap
 
 	// Which template directories to scan for templates
@@ -41,6 +42,8 @@ type IConfig interface {
 	// if true the layout will be used if the request is not an Htmx request, otherwise the template will be rendered without the layout
 	EnableLayoutOnNonHxRequest() bool
 
+
+    // if true the Scaffold templates will be exported to the 'scaffolds' directory
 	ExportScaffolds() bool
 }
 
@@ -52,7 +55,15 @@ type IRouter interface {
 
 // IScaffoldMap is an interface that defines the scaffold map that is used to generate the model templates
 type IScaffoldMap interface {
+    // All returns a map of scaffolded template functions
+    
+    // These functions return the string representation of the scaffolded template (usually loaded from a file)
+    // They are used to scaffold the templates for any given model
 	All() map[string]func() string
+
+    // Get returns a scaffolded template function by name
 	Get(name string) func() string
+
+    // Returns the function map that is passed to the template engine when generating the templates from the scaffolded templates
 	FuncMap() template.FuncMap
 }

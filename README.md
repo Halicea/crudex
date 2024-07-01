@@ -1,8 +1,9 @@
 # CRUDEX
 
-The simplest way to build your crud APIs and views.
+The simplest way to build your crud APIs, admin pages (and maybe more).
 
-Crudex does not interfere with your code, it just helps you to build your App faster by providing a set of tools to build your CRUD APIs and admin interfaces.
+`crudex` does not interfere with your code, it just helps you to build your App faster by providing a set of tools to build your CRUD APIs and admin interfaces.
+
 It is based on Gin and Gorm, so you can use all the features of these libraries without any restrictions.
 
 Crudex allows you to create and extend CRUD controllers based on the model you want to expose. It also provides a set of tools to create admin interfaces for your models.
@@ -18,12 +19,11 @@ go get 42.mk/crudex
 ```
 
 ## How to use
+
 ```go
 package main
 
 import (
-	"os"
-
 	"github.com/gin-gonic/gin"
 	"github.com/halicea/crudex"
 	"gorm.io/driver/sqlite"
@@ -35,29 +35,29 @@ func main() {
 	db, _ := gorm.Open(sqlite.Open("sample.db"), &gorm.Config{}) //create gorm db connection
 	db.AutoMigrate(&Car{}, &Driver{})                            //migrate the models
 
-	// this configuration is used by crudex to setup the controllers and scaffold behaviours
-	crudex.Setup().
-		WithScaffoldStrategy(crudex.SCAFFOLD_ALWAYS).
-		WithCommandLineArgs(os.Args[1:]) 
-        //there are a bunch of other settings you can use, please check the documentation
+	crudex.Setup() // this configuration is used by crudex to setup the controllers and scaffold behaviours
+	// this is the default configuration, you can customize it by calling the methods on the returned object
+	// for example: crudex.Setup().SetScaffoldRootDir("gen").SetScaffoldCreateStrategy(crudex.SCAFFOLD_ALWAYS)
+	// Check the documentation for more information on the available methods, or browse the source code
 
-	app.HTMLRender = crudex.NewRenderer()
+	app.HTMLRender = crudex.NewRenderer() //set the renderer to the one provided by crudex
 
-	var controllers = []crudex.ICrudCtrl{
-		crudex.New[Car](db).OnRouter(app).ScaffoldDefaults(),
-		crudex.New[Driver](db).OnRouter(app).ScaffoldDefaults(),
-	} // create the controllers for the models
+	var ctrls = []crudex.ICrudCtrl{ // create the controllers for the models
+		crudex.New[Car](db).OnRouter(app.Group("cars")).ScaffoldDefaults(),
+		crudex.New[Driver](db).OnRouter(app.Group("drivers")).ScaffoldDefaults(),
+	}
 
-	crudex.ScaffoldIndex(app, "gen/index.html", controllers...) // create an index page that lists all the models
-	app.Run(":8080")                                            //run the app
+	crudex.ScaffoldIndex(app, "gen/index.html", ctrls...) // create an index page that lists all the models
+	app.Run(":8080")                                      //run the app
 }
 
 type Car struct {
 	crudex.BaseModel
 	//you can also customize the input type and placeholder	through the crud-input and crud-placeholder tags
-	Name        string `crud-input:"text" crud-placeholder:"Enter the name of the car"`
+	Name        string `crud-input:"text" crud-placeholder:"Enter name"`
 	License     string `crud-input:"text" crud-placeholder:"Enter the license plate"`
-	Description string `crud-input:"wysiwyg" crud-placeholder:"Describe me"`
+	Description string `crud-input:"wysiwyg" crud-placeholder:"Describe it"`
+	Year        int    `crud-input:"number" crud-placeholder:"Model year of the car"`
 }
 
 type Driver struct {
@@ -77,7 +77,7 @@ For every model there are six(6) routes created by default:
 - `GET /model` Lists all the records (with html or json)
 - `GET /model/:id` Shows a single record (with html or json)
 
-- `POST /model` Creates a new record and redirects to the list.
+- `POST /model/new` Creates a new record and redirects to the list.
   It accepts either form data or json data
 - `PUT /model/:id` Updates a record and redirects to the list.
   It accepts either form data or json data
@@ -100,6 +100,8 @@ There are three parts that you can further customize to your needs:
     This will create a `scaffolds` directory that will be further used to generate the CRUD templates.
 
     This scaffold templates can be customized to generate new CRUD templates with the look, feel and functionality suitable to You.
+
+    You can also create your own ScaffoldMap and use it to generate the templates.
 
 3. **Controller**
 
