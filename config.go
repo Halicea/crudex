@@ -3,78 +3,17 @@ package crudex
 import (
 	"flag"
 	"strings"
-	"text/template"
 
 	"github.com/gin-gonic/gin"
 	"github.com/halicea/crudex/scaffolds"
 )
-//go:generate stringer -type=ScaffoldStrategy
-type ScaffoldStrategy int
-const (
-	// SCAFFOLD_ALWAYS will always scaffold the model templates
-	SCAFFOLD_ALWAYS ScaffoldStrategy = iota
-	// SCAFFOLD_IF_NOT_EXISTS will only scaffold the model templates if they do not exist
-	SCAFFOLD_IF_NOT_EXISTS
-	// SCAFFOLD_NEVER will never scaffold the model templates
-	SCAFFOLD_NEVER
-)
-
-
-type IConfig interface {
-
-	// how to create the templates
-	ScaffoldStrategy() ScaffoldStrategy
-
-	// where to place the scaffolded templates
-	ScaffoldRootDir() string
-
-	// which functions to regsiter for the screation of scaffoled templates
-	ScaffoldFuncs() template.FuncMap
-
-	// ListScaffold defines the scaffold template that generages the list[T] template
-	//
-	// Note: the delimiters are `[[` `]]`
-	ListScaffold() string
-	// DetailScaffold defines the scaffold template that generages the defail[T] template
-	//
-	// Note: the delimiters are `[[` `]]`
-	DetailScaffold() string
-	// FormScaffold defines the scaffold template that generages the form[T] template
-	//
-	// Note: the delimiters are `[[` `]]`
-	FormScaffold() string
-
-	// LayoutScaffold defines the scaffold template that generates the layout template used for listing all the models
-	//
-	// Note: the delimiters are `[[` `]]`
-	LayoutScaffold() string
-
-	// Which template directories to scan for templates
-	TemplateDirs() []string
-
-	// the layout to use on the templates for full page rendering
-	LayoutName() string
-
-	// a function that is used to supply the layout with data
-	LayoutDataFunc() func(c *gin.Context, data gin.H)
-
-	// if true the layout will be used if the request is not an Htmx request, otherwise the template will be rendered without the layout
-	EnableLayoutOnNonHxRequest() bool
-
-	ExportScaffolds() bool
-}
 
 type Config struct {
-	scafoldCreateStrategy ScaffoldStrategy
+	scaffoldCreateStrategy ScaffoldStrategy
 	// where to place the scaffolded templates
 	scaffoldRootDir string
 	exportScaffolds bool
-	// The func map passed to the templates so they can use the functions defined
-	scaffoldFuncs  template.FuncMap
-	listScaffold   func() string
-	detailScaffold func() string
-	formScaffold   func() string
-	layoutScaffold func() string
+	scaffoldMap     IScaffoldMap
 
 	// Which template directories to scan for templates
 	templateDirs []string
@@ -90,23 +29,16 @@ type Config struct {
 }
 
 // NewConfig creates a new configuration crud configuration containing all the defaults
-func DefaultConfig() *Config {
-    return NewConfig().SetAsDefault()
+func Setup() *Config {
+	return NewConfig().SetAsDefault()
 }
+
 func NewConfig() *Config {
 	return &Config{
-		scafoldCreateStrategy: SCAFFOLD_ALWAYS,
-		scaffoldRootDir:       "gen",
-		scaffoldFuncs: template.FuncMap{
-			"RenderTypeInput": RenderInputType,
-		},
-		exportScaffolds: true,
-
-		layoutScaffold: func() string { return readContentsOrDefault("scaffolds/layout.html", scaffolds.Layout, true) },
-		listScaffold:   func() string { return readContentsOrDefault("scaffolds/list.html", scaffolds.List, true) },
-		detailScaffold: func() string { return readContentsOrDefault("scaffolds/detail.html", scaffolds.Detail, true) },
-		formScaffold:   func() string { return readContentsOrDefault("scaffolds/form.html", scaffolds.Form, true) },
-
+		scaffoldCreateStrategy:      SCAFFOLD_ALWAYS,
+		scaffoldRootDir:            "gen",
+		scaffoldMap:                scaffolds.New(),
+		exportScaffolds:            false,
 		layoutName:                 "index.html",
 		enableLayoutOnNonHxRequest: true,
 		layoutDataFunc:             nil,
@@ -116,45 +48,16 @@ func NewConfig() *Config {
 
 // how to create the templates
 func (self *Config) ScaffoldStrategy() ScaffoldStrategy {
-	return self.scafoldCreateStrategy
+	return self.scaffoldCreateStrategy
+}
+
+func (self *Config) ScaffoldMap() IScaffoldMap {
+	return self.scaffoldMap
 }
 
 // where to create the templates
 func (self *Config) ScaffoldRootDir() string {
 	return self.scaffoldRootDir
-}
-
-// based on what template to create the list[T] template
-//
-// Note: the delimiters are `[[` `]]`
-func (self *Config) ListScaffold() string {
-	return self.listScaffold()
-}
-
-// based on what template to create the details[T] template
-//
-// Note: the delimiters are `[[` `]]`
-func (self *Config) DetailScaffold() string {
-	return self.detailScaffold()
-}
-
-// based on what template to create the form[T] template used for edit and create
-//
-// Note: the delimiters are `[[` `]]`
-func (self *Config) FormScaffold() string {
-	return self.formScaffold()
-}
-
-// based on what template to create the layout template used for listing all the models
-//
-// Note: the delimiters are `[[` `]]`
-func (self *Config) LayoutScaffold() string {
-	return self.layoutScaffold()
-}
-
-// The func map passed to the templates so they can use the functions defined
-func (self *Config) ScaffoldFuncs() template.FuncMap {
-	return self.scaffoldFuncs
 }
 
 // Which template directories to scan for templates
@@ -186,43 +89,13 @@ func (self *Config) ExportScaffolds() bool {
 // The default is ScaffoldCreateAlways, options are ScaffoldCreateAlways, ScaffoldCreateIfNotExist, ScaffoldCreateNever
 // This option is not used at the moment
 func (self *Config) WithScaffoldStrategy(value ScaffoldStrategy) *Config {
-	self.scafoldCreateStrategy = value
+	self.scaffoldCreateStrategy = value
 	return self
 }
 
 // WithScaffoldRootDir sets the root directory where the scaffolded templates will be placed
 func (self *Config) WithScaffoldRootDir(value string) *Config {
 	self.scaffoldRootDir = value
-	return self
-}
-
-// WithListScaffold sets the scaffold template that generages the list[T] template
-func (self *Config) WithListScaffold(value func() string) *Config {
-	self.listScaffold = value
-	return self
-}
-
-// WithDetailScaffold sets the scaffold template function that generages the detail[T] template
-func (self *Config) WithDetailScaffold(value func() string) *Config {
-	self.detailScaffold = value
-	return self
-}
-
-// WithFormScaffold sets the scaffold template function that generages the form[T] template
-func (self *Config) WithFormScaffold(value func() string) *Config {
-	self.formScaffold = value
-	return self
-}
-
-// WithLayoutScaffold sets the scaffold template function that generates the layout template used for listing all the models
-func (self *Config) WithLayoutScaffold(value func() string) *Config {
-	self.layoutScaffold = value
-	return self
-}
-
-// WithScaffoldFuncs sets the functions to be used when scaffolding the templates
-func (self *Config) WithScaffoldFuncs(value template.FuncMap) *Config {
-	self.scaffoldFuncs = value
 	return self
 }
 
@@ -256,14 +129,16 @@ func (self *Config) WithExportScaffolds(export bool) *Config {
 	return self
 }
 
-const (
-    ArgStrategyAlways    = "always"
-    ArgStrategyIfNotExists = "newonly"
-    ArgStrategyNever     = "never"
-)
 
+// SetAsDefault sets the current configuration as the default configuration
 func (self *Config) SetAsDefault() (config *Config) {
-    config = self
+	config = self
+	return self
+}
+
+// WithScaffoldMap sets the scaffold map that will be used to generate the scaffolded templates
+func (self *Config) WithScaffoldMap(scaffoldMap IScaffoldMap) *Config {
+    self.scaffoldMap = scaffoldMap
     return self
 }
 
@@ -305,14 +180,14 @@ func (self *Config) WithCommandLineArgs(args []string) *Config {
 	}
 	if scaffoldStrategy != "" {
 		switch scaffoldStrategy {
-		case ArgStrategyAlways:
+		case CmdArgStrategyAlways:
 			self.WithScaffoldStrategy(SCAFFOLD_ALWAYS)
-		case ArgStrategyIfNotExists:
+		case CmdArgStrategyIfNotExists:
 			self.WithScaffoldStrategy(SCAFFOLD_IF_NOT_EXISTS)
-		case ArgStrategyNever:
+		case CmdArgStrategyNever:
 			self.WithScaffoldStrategy(SCAFFOLD_NEVER)
-        default:
-            panic("Invalid strategy")
+		default:
+			panic("Invalid strategy")
 		}
 	}
 	return self

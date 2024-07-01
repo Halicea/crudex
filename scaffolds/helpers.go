@@ -1,4 +1,4 @@
-package crudex
+package scaffolds
 
 import (
 	"fmt"

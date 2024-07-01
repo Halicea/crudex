@@ -22,37 +22,49 @@ go get 42.mk/crudex
 package main
 
 import (
+	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/halicea/crudex"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-type Fruit struct {
-	crudex.BaseModel //the same as the gorm.BaseModel but it adds .GetID() and .SetID(value) methods
-	Name   string
-	Color string
+func main() {
+	app := gin.New()                                             //create gin app
+	db, _ := gorm.Open(sqlite.Open("sample.db"), &gorm.Config{}) //create gorm db connection
+	db.AutoMigrate(&Car{}, &Driver{})                            //migrate the models
+
+	// this configuration is used by crudex to setup the controllers and scaffold behaviours
+	crudex.Setup().
+		WithScaffoldStrategy(crudex.SCAFFOLD_ALWAYS).
+		WithCommandLineArgs(os.Args[1:]) 
+        //there are a bunch of other settings you can use, please check the documentation
+
+	app.HTMLRender = crudex.NewRenderer()
+
+	var controllers = []crudex.ICrudCtrl{
+		crudex.New[Car](db).OnRouter(app).ScaffoldDefaults(),
+		crudex.New[Driver](db).OnRouter(app).ScaffoldDefaults(),
+	} // create the controllers for the models
+
+	crudex.ScaffoldIndex(app, "gen/index.html", controllers...) // create an index page that lists all the models
+	app.Run(":8080")                                            //run the app
 }
 
-func main() {
-	// your regular gin app
-	app := gin.New()
+type Car struct {
+	crudex.BaseModel
+	//you can also customize the input type and placeholder	through the crud-input and crud-placeholder tags
+	Name        string `crud-input:"text" crud-placeholder:"Enter the name of the car"`
+	License     string `crud-input:"text" crud-placeholder:"Enter the license plate"`
+	Description string `crud-input:"wysiwyg" crud-placeholder:"Describe me"`
+}
 
-	// create new db connection and migrate your models
-	db, _ := gorm.Open(sqlite.Open("sample.db"), &gorm.Config{})
-	db.AutoMigrate(&Fruit{})
-
-	// create a configuration that your crud controllers will use
-	app.HTMLRender = crudex.NewRenderer(crudex.NewConfig().
-		WithTemplateDirs("gen"))
-	//the Config interface has many setup options, please check the documentation for more
-
-	// you can also scaffold an index page for your models
-	crudex.ScaffoldIndex(app, "gen/index.html",
-        // scaffold will generate the templates and attach this controller routes to the router
-		crudex.New[Fruit](db).Scaffold(app))
-	//you can also create your own controllers and use the admin to scaffold the pages
-	app.Run(":8080")
+type Driver struct {
+	crudex.BaseModel
+	Name  string
+	CarID uint
+	Car   Car `gorm:"foreignKey:CarID"`
 }
 ``` 
  

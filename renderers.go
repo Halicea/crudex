@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
-	"reflect"
 
 	"github.com/gin-contrib/multitemplate"
 	"github.com/gin-gonic/gin"
@@ -13,9 +12,7 @@ import (
 // config is the default configuration for the Render function
 var config IConfig = NewConfig()
 
-// sets the configuration for the Render function and returns the renderer
-func NewRenderer(options IConfig) multitemplate.Renderer {
-	config = options
+func NewRenderer() multitemplate.Renderer {
 	return loadTemplates(config.TemplateDirs()...)
 }
 
@@ -68,21 +65,6 @@ func loadTemplates(templatesDirs ...string) multitemplate.Renderer {
 	return r
 }
 
-// RenderTypeInput is a helper function that renders an input based on the type of the field.
-//
-// This function is part of the default FuncMap that is passed to the scaffold templates.
-// It is used in the form template to render the input fields for the model
-func RenderTypeInput(modelName string, field reflect.StructField) string {
-	switch field.Type.Kind() {
-	case reflect.String:
-		return fmt.Sprintf(`<input type="text" name="%s">{{.%s.%s}}</input>`, field.Name, modelName, field.Name)
-	case reflect.Int, reflect.Float64:
-		return fmt.Sprintf(`<input type="number" name="%s">{{.%s.%s}}</input>`, field.Name, modelName, field.Name)
-	case reflect.Bool:
-		return fmt.Sprintf(`<input type="checkbox" name="%s">{{.%s.%s}}</input>`, field.Name, modelName, field.Name)
-	}
-	panic(fmt.Sprintf("unsupported type: %s for field %s", field.Type.Kind().String(), field.Name))
-}
 
 // hxAwareRender is a helper function that renders the data based on the request accept header and the Hx-Request header
 func hxAwareRender(c *gin.Context, data gin.H, templateName string, layout string, enableLayoutOnNonHxRequest bool) {

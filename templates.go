@@ -9,17 +9,7 @@ import (
 	"text/template"
 
 	"github.com/gin-gonic/gin"
-)
-
-type ScaffoldStrategy int
-
-const (
-	// SCAFFOLD_ALWAYS will always scaffold the model templates
-	SCAFFOLD_ALWAYS = iota
-	// SCAFFOLD_IF_NOT_EXISTS will only scaffold the model templates if they do not exist
-	SCAFFOLD_IF_NOT_EXISTS
-	// SCAFFOLD_NEVER will never scaffold the model templates
-	SCAFFOLD_NEVER
+	"github.com/halicea/crudex/shared"
 )
 
 // ModelDescriptor is a struct that holds the information needed to scaffold a model.
@@ -53,12 +43,12 @@ type MenuItem struct {
 // ModelDescriptorConfiguration is a struct that is used to create a ModelDescriptor
 // it defines the rules for the creation of the ModelDescriptor
 type ModelDescriptorConfiguration struct {
-    // RootDir is the root directory where the templates will be written.
-    // It is used to create the TemplateFileName of the ModelDescriptor
-	RootDir            string
-    // ModelNameSuffix is the suffix that will be added to the model name
-	ModelNameSuffix    string
-    // TemplateNameSuffix is the suffix that will be added to the template name
+	// RootDir is the root directory where the templates will be written.
+	// It is used to create the TemplateFileName of the ModelDescriptor
+	RootDir string
+	// ModelNameSuffix is the suffix that will be added to the model name
+	ModelNameSuffix string
+	// TemplateNameSuffix is the suffix that will be added to the template name
 	TemplateNameSuffix string
 	// TemplateNamePrefix is the prefix that will be added to the template name
 	TemplateNamePrefix string
@@ -111,7 +101,7 @@ func (md *ModelDescriptor) Flush(definition string, strategy ScaffoldStrategy) e
 	}
 	tmpl := template.Must(template.New(md.Name).
 		Delims("[[", "]]").
-		Funcs(config.ScaffoldFuncs()).
+		Funcs(config.ScaffoldMap().FuncMap()).
 		Parse(definition))
 	tmplFile, err := os.Create(md.TemplateFileName)
 	defer tmplFile.Close()
@@ -127,28 +117,29 @@ func (md *ModelDescriptor) Flush(definition string, strategy ScaffoldStrategy) e
 
 func FlushAll(dst string, models ...interface{}) {
 	for _, m := range models {
-		GenDetailsTmpl(m, dst)
+		GenDetailTmpl(m, dst)
 		GenListTmpl(m, dst)
 		GenFormTmpl(m, dst)
 	}
 }
 
-func GenDetailsTmpl(data interface{}, rootDir string) {
+func GenDetailTmpl(data interface{}, rootDir string) {
 	err := NewDescriptor(data, &ModelDescriptorConfiguration{
 		RootDir: rootDir,
-	}).Flush(config.DetailScaffold(), config.ScaffoldStrategy())
+	}).Flush(config.ScaffoldMap().Get(shared.ScaffoldTemplateDetail)(), config.ScaffoldStrategy())
 
 	if err != nil {
 		panic(err)
 	}
 }
 
+
 func GenListTmpl(data interface{}, rootDir string) {
 	err := NewDescriptor(data, &ModelDescriptorConfiguration{
 		RootDir:            rootDir,
 		TemplateNameSuffix: "list",
 		ModelNameSuffix:    "List",
-	}).Flush(config.ListScaffold(), config.ScaffoldStrategy())
+	}).Flush(config.ScaffoldMap().Get(shared.ScaffoldTemplateList)(), config.ScaffoldStrategy())
 
 	if err != nil {
 		panic(err)
@@ -159,7 +150,7 @@ func GenFormTmpl(data interface{}, rootDir string) {
 	err := NewDescriptor(data, &ModelDescriptorConfiguration{
 		RootDir:            rootDir,
 		TemplateNameSuffix: "form",
-	}).Flush(config.FormScaffold(), config.ScaffoldStrategy())
+	}).Flush(config.ScaffoldMap().Get(shared.ScaffoldTemplateLayout)(), config.ScaffoldStrategy())
 
 	if err != nil {
 		panic(err)
@@ -167,6 +158,12 @@ func GenFormTmpl(data interface{}, rootDir string) {
 }
 
 func GenLayout(fileName string, controllers []ICrudCtrl) {
+type TestStruct struct {
+	Str  string
+	Num  int32
+	Html string `crud-input:"html" crud-placeholder:"Enter some HTML"`
+	Date string `crud-input:"datetime"`
+}
 	if !shouldScaffold(config.ScaffoldStrategy(), fileName) {
 		if gin.IsDebugging() {
 			fmt.Printf("Skipping scaffold of %s\n", fileName)
@@ -188,8 +185,8 @@ func GenLayout(fileName string, controllers []ICrudCtrl) {
 
 	tmpl := template.Must(template.New(filepath.Base(fileName)).
 		Delims("[[", "]]").
-		Funcs(config.ScaffoldFuncs()).
-		Parse(config.LayoutScaffold()))
+		Funcs(config.ScaffoldMap().FuncMap()).
+		Parse(config.ScaffoldMap().Get(shared.ScaffoldTemplateLayout)()))
 
 	tmplFile, err := os.Create(fileName)
 	defer tmplFile.Close()

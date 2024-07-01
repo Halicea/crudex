@@ -3,6 +3,7 @@ package crudex
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -12,26 +13,8 @@ import (
 	"gorm.io/gorm"
 )
 
-type IRouter interface {
-	gin.IRoutes
-	Group(string, ...gin.HandlerFunc) *gin.RouterGroup
-	BasePath() string
-}
-
 // FormBinder is a function that binds the form data to a model
 type FormBinder[T IModel] func(c *gin.Context, out *T) error
-
-// ICrudCtrl is an interface that defines the basic CRUD operations for a model
-type ICrudCtrl interface {
-	BasePath() string
-	GetModelName() string
-
-	List(c *gin.Context)
-	Details(c *gin.Context)
-	Form(c *gin.Context)
-	Upsert(c *gin.Context)
-	Delete(c *gin.Context)
-}
 
 // CrudCtrl is a controller that implements the basic CRUD operations for a model with a gorm backend
 type CrudCtrl[T IModel] struct {
@@ -42,10 +25,12 @@ type CrudCtrl[T IModel] struct {
 	FormBinder   FormBinder[T]
 }
 
+// Returns the Name of the model
 func (self *CrudCtrl[T]) GetModelName() string {
 	return self.ModelName
 }
 
+// BasePath returns the base path of the controller
 func (self *CrudCtrl[T]) BasePath() string {
 	return self.Router.BasePath()
 }
@@ -63,15 +48,19 @@ func New[T IModel](db *gorm.DB) *CrudCtrl[T] {
 	}
 }
 
-func (self *CrudCtrl[T]) Scaffold(router IRouter) *CrudCtrl[T] {
+
+func (self *CrudCtrl[T]) ScaffoldDefaults() *CrudCtrl[T] {
 	model := *new(T)
 	rootDir := config.ScaffoldRootDir()
-	GenDetailsTmpl(model, rootDir)
+	if _, err := os.Stat(rootDir); os.IsNotExist(err) {
+		if os.MkdirAll(rootDir, 0755) != nil {
+			panic("Failed to create directory")
+		}
+	}
 	GenListTmpl(model, rootDir)
+	GenDetailTmpl(model, rootDir)
 	GenFormTmpl(model, rootDir)
-	modelType := extractType(model)
-	ctrlGroup := router.Group(fmt.Sprintf("/%s", strings.ToLower(modelType.Name())))
-	return self.OnRouter(ctrlGroup)
+    return self
 }
 
 // OnRouter attaches the CRUD routes to the provided router
@@ -105,7 +94,14 @@ func (self *CrudCtrl[T]) WithFormBinder(handler FormBinder[T]) *CrudCtrl[T] {
 // !Requres the template to be named as modelName-list.html where the modelName is lowercased model name
 func (self *CrudCtrl[T]) List(c *gin.Context) {
 	var items []T
-	self.Db.Find(&items)
+	filter, error := NewSearchArgsFromQuery(c)
+	if error != nil {
+		c.Error(error)
+		c.String(http.StatusBadRequest, error.Error())
+		c.Abort()
+		return
+	}
+	self.Db.Find(&items).Limit(filter.Limit).Offset((filter.Page - 1) * filter.Limit)
 	Render(c,
 		gin.H{fmt.Sprintf("%sList", self.ModelName): &items, "Path": self.Router.BasePath()},
 		fmt.Sprintf("%s-list.html", strings.ToLower(self.ModelName)))
