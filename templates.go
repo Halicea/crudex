@@ -150,7 +150,7 @@ func GenFormTmpl(data interface{}, rootDir string) {
 	err := NewDescriptor(data, &ModelDescriptorConfiguration{
 		RootDir:            rootDir,
 		TemplateNameSuffix: "form",
-	}).Flush(config.ScaffoldMap().Get(shared.ScaffoldTemplateLayout)(), config.ScaffoldStrategy())
+	}).Flush(config.ScaffoldMap().Get(shared.ScaffoldTemplateForm)(), config.ScaffoldStrategy())
 
 	if err != nil {
 		panic(err)
