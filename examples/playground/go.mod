@@ -4,7 +4,7 @@ go 1.22.4
 
 replace github.com/halicea/crudex => ../..
 
-require github.com/halicea/crudex v0.1.3
+require github.com/halicea/crudex v0.1.5
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect
