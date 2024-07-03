@@ -27,7 +27,7 @@ type IConfig interface {
 	// where to place the scaffolded templates
 	ScaffoldRootDir() string
 
-    // the scaffold map contains all the scaffold templates and is used to generate the model templates
+	// the scaffold map contains all the scaffold templates and is used to generate the model templates
 	ScaffoldMap() IScaffoldMap
 
 	// Which template directories to scan for templates
@@ -42,11 +42,30 @@ type IConfig interface {
 	// if true the layout will be used if the request is not an Htmx request, otherwise the template will be rendered without the layout
 	EnableLayoutOnNonHxRequest() bool
 
+	// HasUI returns true if the response should be rendered as a UI
+	HasUI() bool
 
-    // if true the Scaffold templates will be exported to the 'scaffolds' directory
-	ExportScaffolds() bool
+	// HasAPI returns true if the response should be rendered as an API
+	HasAPI() bool
 }
 
+// IResponseCapabilities is an interface that defines the capabilities of the response
+//
+// IConfig is already compliant with this interface
+type IResponseCapabilities interface {
+	// HasUI returns true if the response should be rendered as a UI
+	HasUI() bool
+	// HasAPI returns true if the response should be rendered as an API
+	HasAPI() bool
+	// EnableLayoutOnNonHxRequest returns true if the layout should be used even if the request is not an Htmx request
+	EnableLayoutOnNonHxRequest() bool
+}
+
+// IRouter is an interface that defines the router that is used to scaffold the model templates
+//
+// It extends the gin.IRoutes interface but adds the BasePath method that returns the base path of the router.
+//
+// Note: the `RouterGroup` struct has a `BasePath()` method already, so there is no need to implement it
 type IRouter interface {
 	gin.IRoutes
 	Group(string, ...gin.HandlerFunc) *gin.RouterGroup
@@ -55,15 +74,20 @@ type IRouter interface {
 
 // IScaffoldMap is an interface that defines the scaffold map that is used to generate the model templates
 type IScaffoldMap interface {
-    // All returns a map of scaffolded template functions
-    
-    // These functions return the string representation of the scaffolded template (usually loaded from a file)
-    // They are used to scaffold the templates for any given model
+	// All returns a map of scaffolded template functions
+	//
+	// These functions return the string representation of the scaffolded template (usually loaded from a file)
+	// They are used to scaffold the templates for any given model
 	All() map[string]func() string
 
-    // Get returns a scaffolded template function by name
+	// Get returns a scaffolded template function by name
 	Get(name string) func() string
 
-    // Returns the function map that is passed to the template engine when generating the templates from the scaffolded templates
+	// Returns the function map that is passed to the template engine when generating the templates from the scaffolded templates
 	FuncMap() template.FuncMap
+
+	// Export exports the scaffolded templates to the file system in the `scaffolds` directory.
+	//
+	// If the `forceIfExists` parameter is true, it will overwrite any existing scaffold templates
+	Export(forceIfExists bool) error
 }

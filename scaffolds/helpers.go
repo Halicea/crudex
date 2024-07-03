@@ -9,23 +9,23 @@ import (
 
 var cache = map[string]string{}
 
-// readContentsOrDefault reads the file if it exists, otherwise returns the default content.
+// ReadContentsOrDefault reads the file if it exists, otherwise returns the default content.
 //
 // If useCache is true it tries to read the file from the cache first and if it is not
 // found there it reads the file from the disk and caches it for any subsequent calls.
-func readContentsOrDefault(filename, defaultContent string, useCache bool) string {
-	fileContent, error := readContents(filename, useCache)
+func ReadContentsOrDefault(filename, defaultContent string, useCache bool) string {
+	fileContent, error := ReadContents(filename, useCache)
 	if error == nil {
 		return fileContent
 	}
 	return defaultContent
 }
 
-// readContents reads the contents of a file and returns it as a string
+// ReadContents reads the contents of a file and returns it as a string
 //
 // If useCache is true it tries to read the file from the cache first and if it is not
 // found there it reads the file from the disk and caches it for any subsequent calls.
-func readContents(fname string, useCache bool) (string, error) {
+func ReadContents(fname string, useCache bool) (string, error) {
 	if useCache {
 		if f, ok := cache[fname]; ok {
 			return f, nil
@@ -47,7 +47,7 @@ func readContents(fname string, useCache bool) (string, error) {
 	return "", fmt.Errorf("file not found: %s", fname)
 }
 
-func writeContents(fname, content string, useCache bool) string {
+func WriteContents(fname, content string, useCache bool) string {
 	//check if the directory exists
 	if _, err := os.Stat(filepath.Dir(fname)); os.IsNotExist(err) {
 		err := os.MkdirAll(filepath.Dir(fname), 0755)

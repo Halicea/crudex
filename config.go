@@ -2,6 +2,7 @@ package crudex
 
 import (
 	"flag"
+	"fmt"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -12,7 +13,6 @@ type Config struct {
 	scaffoldCreateStrategy ScaffoldStrategy
 	// where to place the scaffolded templates
 	scaffoldRootDir string
-	exportScaffolds bool
 	scaffoldMap     IScaffoldMap
 
 	// Which template directories to scan for templates
@@ -21,11 +21,18 @@ type Config struct {
 	//the layout to use on the templates for full page rendering
 	layoutName string
 
-	//if true the layout will be used even if the request is not an Htmx request, otherwise the template will be rendered without the layout
+	//if true the layout will be used even if the request is not an Htmx request,
+	//otherwise the template will be rendered without the layout
 	enableLayoutOnNonHxRequest bool
 
 	//a function that is used to supply the layout with data
 	layoutDataFunc func(c *gin.Context, data gin.H)
+
+	//Enable API requests
+	apiEnabled bool
+
+	//Enable UI requests
+	uiEnabled bool
 }
 
 // NewConfig creates a new configuration crud configuration containing all the defaults
@@ -33,17 +40,49 @@ func Setup() *Config {
 	return NewConfig().SetAsDefault()
 }
 
+// config is the default configuration
+var config IConfig = NewConfig()
+
+// GetConfig returns the default crudex configuration for the package
+func GetConfig() IConfig {
+	return config
+}
+
 func NewConfig() *Config {
 	return &Config{
-		scaffoldCreateStrategy:      SCAFFOLD_ALWAYS,
+		scaffoldCreateStrategy:     SCAFFOLD_ALWAYS,
 		scaffoldRootDir:            "gen",
 		scaffoldMap:                scaffolds.New(),
-		exportScaffolds:            false,
 		layoutName:                 "index.html",
 		enableLayoutOnNonHxRequest: true,
 		layoutDataFunc:             nil,
 		templateDirs:               []string{"gen", "templates"},
+        apiEnabled:                 true,
+        uiEnabled:                  true,
 	}
+}
+
+func (self *Config) String() string {
+	return fmt.Sprintf(`
+#############################################
+Crudex Configuration:
+    Scaffold Strategy: %s
+    Scaffold Root Dir: %s
+    Scaffold Map: %s
+    Template Dirs: %s
+    Layout Name: %s
+    Enable Layout On Non Hx Requests: %t
+    API Enabled: %t
+    UI Enabled: %t
+#############################################`, 
+    self.scaffoldCreateStrategy, 
+    self.scaffoldRootDir, 
+    self.scaffoldMap, 
+    self.templateDirs, 
+    self.layoutName, 
+    self.enableLayoutOnNonHxRequest, 
+    self.apiEnabled, 
+    self.uiEnabled)
 }
 
 // how to create the templates
@@ -78,11 +117,6 @@ func (self *Config) EnableLayoutOnNonHxRequest() bool {
 // a function that is used to supply the layout with data
 func (self *Config) LayoutDataFunc() func(c *gin.Context, data gin.H) {
 	return self.layoutDataFunc
-}
-
-// ExportScaffolds gets if the scaffold templates should be exported to the file system
-func (self *Config) ExportScaffolds() bool {
-	return self.exportScaffolds
 }
 
 // WithScaffoldStrategy sets the strategy to use when creating the scaffolded templates
@@ -123,25 +157,41 @@ func (c *Config) WithEnableLayoutOnNonHxRequest(enableLayoutOnNonHxRequest bool)
 	return c
 }
 
-// WithExportScaffolds gets if the scaffold templates should be exported to the file system
-func (self *Config) WithExportScaffolds(export bool) *Config {
-	self.exportScaffolds = export
-	return self
-}
-
-
 // SetAsDefault sets the current configuration as the default configuration
-func (self *Config) SetAsDefault() (config *Config) {
+func (self *Config) SetAsDefault() *Config {
 	config = self
 	return self
 }
 
 // WithScaffoldMap sets the scaffold map that will be used to generate the scaffolded templates
 func (self *Config) WithScaffoldMap(scaffoldMap IScaffoldMap) *Config {
-    self.scaffoldMap = scaffoldMap
-    return self
+	self.scaffoldMap = scaffoldMap
+	return self
 }
 
+// WithAPI sets the configuration to enable the API endpoints
+func (self *Config) WithAPI(value bool) *Config {
+	self.apiEnabled = value
+	return self
+}
+
+// WithUI sets the configuration to enable the UI endpoints
+func (self *Config) WithUI(value bool) *Config {
+	self.uiEnabled = value
+	return self
+}
+
+// HasUI returns true if the configuration has the UI enabled
+func (self *Config) HasUI() bool {
+	return self.uiEnabled
+}
+
+// HasAPI returns true if the configuration has the API enabled
+func (self *Config) HasAPI() bool {
+	return self.apiEnabled
+}
+
+// WithCommandLineArgs sets the configuration from the command line arguments
 func (self *Config) WithCommandLineArgs(args []string) *Config {
 	var templateDirs string
 	var layout string
@@ -171,9 +221,6 @@ func (self *Config) WithCommandLineArgs(args []string) *Config {
 	}
 	if hxAware != "" {
 		self.WithEnableLayoutOnNonHxRequest(hxAware == "true")
-	}
-	if scaffoldExportBases != "" {
-		self.WithExportScaffolds(scaffoldExportBases == "true")
 	}
 	if scaffoldDir != "" {
 		self.WithScaffoldRootDir(scaffoldDir)

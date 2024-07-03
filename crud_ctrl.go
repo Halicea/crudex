@@ -18,8 +18,10 @@ type FormBinder[T IModel] func(c *gin.Context, out *T) error
 
 // CrudCtrl is a controller that implements the basic CRUD operations for a model with a gorm backend
 type CrudCtrl[T IModel] struct {
-	Db           *gorm.DB
-	Router       IRouter
+	Db     *gorm.DB
+	Router IRouter
+	Config IConfig
+
 	ModelName    string
 	ModelKeyName string
 	FormBinder   FormBinder[T]
@@ -36,7 +38,17 @@ func (self *CrudCtrl[T]) BasePath() string {
 }
 
 // New creates a new CRUD controller for the provided model
+//
+// It uses the default configuration
+// See `NewWithConfig` for more control over the configuration
 func New[T IModel](db *gorm.DB) *CrudCtrl[T] {
+	return NewWithConfig[T](db, GetConfig())
+}
+
+// New creates a new CRUD controller for the provided model
+//
+// It uses the provided configuration to define its behaviour
+func NewWithConfig[T IModel](db *gorm.DB, conf IConfig) *CrudCtrl[T] {
 	var name = fmt.Sprintf("%T", *new(T))
 	if strings.Contains(name, ".") {
 		name = strings.Split(name, ".")[1]
@@ -45,13 +57,31 @@ func New[T IModel](db *gorm.DB) *CrudCtrl[T] {
 		FormBinder: DefaultFormHandler[T], // default form handler is used if none is provided
 		ModelName:  name,
 		Db:         db,
+		Config:     conf,
 	}
 }
 
+// OnRouter attaches the CRUD routes to the provided router
+func (self *CrudCtrl[T]) OnRouter(r IRouter) *CrudCtrl[T] {
+	self.Router = r
+	r.GET("/", self.List)
 
+	if self.Config.HasUI() {
+		r.GET("/new", self.Form)
+		r.GET("/:id/edit", self.Form)
+	}
+
+	r.PUT("/new", self.Upsert)
+
+	r.GET("/:id", self.Details)
+	r.POST("/:id", self.Upsert)
+	r.DELETE("/:id", self.Delete)
+
+	return self
+}
 func (self *CrudCtrl[T]) ScaffoldDefaults() *CrudCtrl[T] {
 	model := *new(T)
-	rootDir := config.ScaffoldRootDir()
+	rootDir := self.Config.ScaffoldRootDir()
 	if _, err := os.Stat(rootDir); os.IsNotExist(err) {
 		if os.MkdirAll(rootDir, 0755) != nil {
 			panic("Failed to create directory")
@@ -60,24 +90,22 @@ func (self *CrudCtrl[T]) ScaffoldDefaults() *CrudCtrl[T] {
 	GenListTmpl(model, rootDir)
 	GenDetailTmpl(model, rootDir)
 	GenFormTmpl(model, rootDir)
-    return self
+	return self
 }
 
-// OnRouter attaches the CRUD routes to the provided router
-func (self *CrudCtrl[T]) OnRouter(r IRouter) *CrudCtrl[T] {
-	self.Router = r
-
-	r.GET("/", self.List)
-
-	r.GET("/new", self.Form)
-	r.PUT("/new", self.Upsert)
-
-	r.GET("/:id", self.Details)
-	r.GET("/:id/edit", self.Form)
-	r.POST("/:id", self.Upsert)
-
-	r.DELETE("/:id", self.Delete)
-
+// Creates and Flushes custom scaffold template
+func (self *CrudCtrl[T]) Scaffold(scaffoldTmpl string, conf *ScaffoldDataModelConfigurator) *CrudCtrl[T] {
+	model := *new(T)
+	rootDir := self.Config.ScaffoldRootDir()
+	if _, err := os.Stat(rootDir); os.IsNotExist(err) {
+		if os.MkdirAll(rootDir, 0755) != nil {
+			panic("Failed to create directory")
+		}
+	}
+	err := NewScaffoldDataModel(model, conf).Flush(scaffoldTmpl, self.Config.ScaffoldStrategy())
+	if err != nil {
+		panic(err)
+	}
 	return self
 }
 
@@ -89,6 +117,7 @@ func (self *CrudCtrl[T]) WithFormBinder(handler FormBinder[T]) *CrudCtrl[T] {
 	return self
 }
 
+// ROUTE HANDLERS
 // List is a handler that lists all the items of the model
 // it is a GET request
 // !Requres the template to be named as modelName-list.html where the modelName is lowercased model name
@@ -102,7 +131,7 @@ func (self *CrudCtrl[T]) List(c *gin.Context) {
 		return
 	}
 	self.Db.Find(&items).Limit(filter.Limit).Offset((filter.Page - 1) * filter.Limit)
-	Render(c,
+	Respond(c,
 		gin.H{fmt.Sprintf("%sList", self.ModelName): &items, "Path": self.Router.BasePath()},
 		fmt.Sprintf("%s-list.html", strings.ToLower(self.ModelName)))
 }
@@ -117,7 +146,7 @@ func (self *CrudCtrl[T]) Details(c *gin.Context) {
 	if err == nil {
 		var item T
 		self.Db.First(&item, id)
-		Render(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
+		Respond(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
 	} else {
 		c.Error(err)
 		c.String(http.StatusBadRequest, fmt.Sprintf("Invalid ID for %s: %d", self.ModelName, id))
@@ -131,14 +160,13 @@ func (self *CrudCtrl[T]) Form(c *gin.Context) {
 	template := fmt.Sprintf("%s-form.html", strings.ToLower(self.ModelName))
 	idStr := c.Param("id")
 	if idStr == "" {
-		Render(c, gin.H{"Path": self.Router.BasePath()}, template)
-		return
+		Respond(c, gin.H{"Path": self.Router.BasePath()}, template)
 	} else {
 		id, err := strconv.ParseUint(idStr, 10, 64)
 		if err == nil {
 			var item T
 			self.Db.First(&item, id)
-			Render(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
+			Respond(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
 		} else {
 			c.Error(err)
 			c.String(http.StatusBadRequest, fmt.Sprintf("Invalid ID for %s: %d", self.ModelName, id))
@@ -201,6 +229,16 @@ func (self *CrudCtrl[T]) Delete(c *gin.Context) {
 	c.Abort()
 }
 
+// END: ROUTE HANDLERS
+
+// ScaffoldIndex creates a simple index page that lists all the controllers
+func ScaffoldIndex(r IRouter, fileName string, controllers ...ICrudCtrl) gin.IRoutes {
+	GenLayout(fileName, controllers)
+	return r.GET("/", func(c *gin.Context) {
+		RespondWithConfig(c, gin.H{"Path": r.BasePath()}, filepath.Base(fileName), NewConfig().WithEnableLayoutOnNonHxRequest(false))
+	})
+}
+
 func BindForm[T any](r *http.Request, out *T) error {
 	// Parse the form data from the request.
 	if err := r.ParseForm(); err != nil {
@@ -223,14 +261,6 @@ func BindForm[T any](r *http.Request, out *T) error {
 		}
 	}
 	return nil
-}
-
-// ScaffoldIndex creates a simple index page that lists all the controllers
-func ScaffoldIndex(r IRouter, fileName string, controllers ...ICrudCtrl) gin.IRoutes {
-	GenLayout(fileName, controllers)
-	return r.GET("/", func(c *gin.Context) {
-		RenderWithConfig(c, gin.H{"Path": r.BasePath()}, filepath.Base(fileName), NewConfig().WithEnableLayoutOnNonHxRequest(false))
-	})
 }
 
 // DefaultFormHandler is a default form binder that binds the form data to a model using the form field names as the model field names
