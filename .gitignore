@@ -1,7 +1,8 @@
 # files/folders I've seen that we don't want to commit
 db.sqlite
 gin-bin
-example/
+example
+**/example
 .idea/
 
 # Binaries for programs and plugins
