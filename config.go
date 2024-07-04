@@ -41,8 +41,10 @@ type Config struct {
 	//Default router
 	defaultRouter IRouter
 
+    // list of the controller registered with the configuration
 	controllers *ControllerList
 
+    // wether to auto scaffold the templates when a new controller is created
 	autoScaffold bool
 }
 

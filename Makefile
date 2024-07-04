@@ -6,7 +6,11 @@ run: build
 	go run main.go
 
 test: build
-	go test -v ./...
+	go test -v  ./...
+
+coverage:
+	go test -v -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out
 
 watch: build
 	air -c .air.toml
