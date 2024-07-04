@@ -3,7 +3,6 @@ package scaffolds
 import (
 	_ "embed"
 	"fmt"
-	"io"
 	"os"
 	"reflect"
 	"text/template"
@@ -155,12 +154,12 @@ func (self *ScaffoldMap) Export(forceIfExists bool) error {
 }
 
 // PrintAll prints all the scaffold templates to the console
-func (self *ScaffoldMap) PrintAll(w io.Writer) {
-	w.Write([]byte("Scaffold Templates:\n"))
+func (self *ScaffoldMap) PrintAll() {
+	println("Scaffold Templates:")
 	for name, content := range self.All() {
-		w.Write([]byte(fmt.Sprintf("Template: %s\n", name)))
-		w.Write([]byte(content()))
-		w.Write([]byte("============================\n"))
+		println(fmt.Sprintf("Template: %s", name))
+		println(content())
+		println("============================")
 	}
 }
 

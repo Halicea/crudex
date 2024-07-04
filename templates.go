@@ -145,7 +145,11 @@ func (md *ScaffoldDataModel) Flush(definition string, strategy ScaffoldStrategy)
 		Parse(definition))
 
 	tmplFile, err := os.Create(md.TemplateFileName)
-	defer tmplFile.Close()
+	defer func() {
+		if err := tmplFile.Close(); err != nil {
+			panic(err)
+		}
+	}()
 	if err != nil {
 		return err
 	}
@@ -225,7 +229,45 @@ func GenLayout(fileName string, controllers []ICrudCtrl) {
 		Parse(_scaffoldFor(shared.ScaffoldTemplateLayout)))
 
 	tmplFile, err := os.Create(fileName)
-	defer tmplFile.Close()
+	defer func() {
+		if err := tmplFile.Close(); err != nil {
+			panic(err)
+		}
+	}()
+	if err != nil {
+		panic(err)
+	}
+	err = tmpl.Execute(tmplFile, data)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func GenOpenAPI(fileName string, controllers []ICrudCtrl) {
+	if !shouldScaffold(config.ScaffoldStrategy(), fileName) {
+		if gin.IsDebugging() {
+			fmt.Printf("Skipping scaffold of %s\n", fileName)
+		}
+		return
+	}
+
+	data := []ScaffoldMenuItem{}
+	for _, ctrl := range controllers {
+		data = append(data, ScaffoldMenuItem{
+			Title: ctrl.GetModelName(),
+		})
+	}
+	tmpl := template.Must(template.New(filepath.Base(fileName)).
+		Delims("[[", "]]").
+		Funcs(config.ScaffoldMap().FuncMap()).
+		Parse(_scaffoldFor(shared.ScaffoldTemplateOpenAPI)))
+
+	tmplFile, err := os.Create(fileName)
+	defer func() {
+		if err := tmplFile.Close(); err != nil {
+			panic(err)
+		}
+	}()
 	if err != nil {
 		panic(err)
 	}

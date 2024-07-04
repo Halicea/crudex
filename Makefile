@@ -1,18 +1,25 @@
-build:
+build: tidy generate lint
 	go build ./...
 
-run:
+
+run: build
 	go run main.go
 
-test:
+test: build
 	go test -v ./...
+
+watch: build
+	air -c .air.toml
+
+example: build
+	cd examples/simple && go run main.go
 
 tidy:
 	go mod tidy
-	cd examples/simple && go mod tidy
-	
-watch:
-	air -c .air.toml
 
-example:
-	cd examples/simple && go run main.go
+generate:
+	go generate ./...
+
+lint:
+	golangci-lint run
+

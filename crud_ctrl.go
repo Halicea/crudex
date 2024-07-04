@@ -44,8 +44,9 @@ func New[T IModel]() *CrudCtrl[T] {
 	conf := GetConfig()
 	db := conf.DefaultDb()
 	modelType := extractType(*new(T))
-	ctrlGroup := conf.DefaultRouter().Group(fmt.Sprintf("/%s", strings.ToLower(modelType.Name())))
-	return NewWithOptions[T](db, ctrlGroup, conf)
+	router := conf.DefaultRouter().Group(fmt.Sprintf("/%s", strings.ToLower(modelType.Name())))
+
+	return NewWithOptions[T](db, router, conf)
 }
 
 // New creates a new CRUD controller for the provided model
@@ -71,9 +72,9 @@ func NewWithOptions[T IModel](db *gorm.DB, router IRouter, conf IConfig) *CrudCt
 	if db == nil {
 		slog.Warn("DB is nil for model", slog.Any("name", name))
 	}
-    if conf.AutoScaffold() {
-        res.ScaffoldDefaults()
-    }
+	if conf.AutoScaffold() {
+		res.ScaffoldDefaults()
+	}
 	return res
 }
 
@@ -150,8 +151,7 @@ func (self *CrudCtrl[T]) List(c *gin.Context) {
 	var items []T
 	filter, error := NewSearchArgsFromQuery(c)
 	if error != nil {
-		c.Error(error)
-		c.String(http.StatusBadRequest, error.Error())
+		c.String(http.StatusBadRequest, c.Error(error).Error())
 		c.Abort()
 		return
 	}
@@ -173,7 +173,7 @@ func (self *CrudCtrl[T]) Details(c *gin.Context) {
 		self.Db.First(&item, id)
 		Respond(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
 	} else {
-		c.Error(err)
+		_ = c.Error(err)
 		c.String(http.StatusBadRequest, fmt.Sprintf("Invalid ID for %s: %d", self.ModelName, id))
 	}
 }
@@ -193,7 +193,7 @@ func (self *CrudCtrl[T]) Form(c *gin.Context) {
 			self.Db.First(&item, id)
 			Respond(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
 		} else {
-			c.Error(err)
+			_ = c.Error(err)
 			c.String(http.StatusBadRequest, fmt.Sprintf("Invalid ID for %s: %d", self.ModelName, id))
 		}
 	}
@@ -206,8 +206,7 @@ func (self *CrudCtrl[T]) Form(c *gin.Context) {
 func (self *CrudCtrl[T]) Upsert(c *gin.Context) {
 	var item T
 	if err := self.FormBinder(c, &item); err != nil {
-		c.Error(err)
-		c.String(http.StatusBadRequest, err.Error())
+		c.String(http.StatusBadRequest, c.Error(err).Error())
 		c.Abort()
 		return
 	}
@@ -226,8 +225,7 @@ func (self *CrudCtrl[T]) Upsert(c *gin.Context) {
 	res := self.Db.Save(&item)
 
 	if res.Error != nil {
-		c.Error(res.Error)
-		c.String(http.StatusBadRequest, res.Error.Error())
+		c.String(http.StatusBadRequest, c.Error(res.Error).Error())
 		c.Abort()
 		return
 	}

@@ -13,9 +13,9 @@ func _() {
 	_ = x[ScaffoldStrategyNever-2]
 }
 
-const _ScaffoldStrategy_name = "SCAFFOLD_ALWAYSSCAFFOLD_IF_NOT_EXISTSSCAFFOLD_NEVER"
+const _ScaffoldStrategy_name = "ScaffoldStrategyAlwaysScaffoldStrategyIfNotExistsScaffoldStrategyNever"
 
-var _ScaffoldStrategy_index = [...]uint8{0, 15, 37, 51}
+var _ScaffoldStrategy_index = [...]uint8{0, 22, 49, 70}
 
 func (i ScaffoldStrategy) String() string {
 	if i < 0 || i >= ScaffoldStrategy(len(_ScaffoldStrategy_index)-1) {

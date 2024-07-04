@@ -51,4 +51,5 @@ const (
 	ScaffoldTemplateList                               //list
 	ScaffoldTemplateDetail                             //detail
 	ScaffoldTemplateForm                               //form
+    ScaffoldTemplateOpenAPI                            //openapi
 )

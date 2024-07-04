@@ -84,7 +84,7 @@ func NewConfig() *Config {
 	}
 }
 
-func (self *Config) String() string {
+func (conf *Config) String() string {
 	return fmt.Sprintf(`
 #############################################
 Crudex Configuration:
@@ -97,74 +97,83 @@ Crudex Configuration:
     API Enabled: %t
     UI Enabled: %t
 #############################################`,
-		self.scaffoldCreateStrategy,
-		self.scaffoldRootDir,
-		self.scaffoldMap,
-		self.templateDirs,
-		self.layoutName,
-		self.enableLayoutOnNonHxRequest,
-		self.apiEnabled,
-		self.uiEnabled)
+		conf.scaffoldCreateStrategy,
+		conf.scaffoldRootDir,
+		conf.scaffoldMap,
+		conf.templateDirs,
+		conf.layoutName,
+		conf.enableLayoutOnNonHxRequest,
+		conf.apiEnabled,
+		conf.uiEnabled)
 }
 
 // how to create the templates
-func (self *Config) ScaffoldStrategy() ScaffoldStrategy {
-	return self.scaffoldCreateStrategy
+func (conf *Config) ScaffoldStrategy() ScaffoldStrategy {
+	return conf.scaffoldCreateStrategy
 }
 
-func (self *Config) ScaffoldMap() IScaffoldMap {
-	return self.scaffoldMap
+func (conf *Config) ScaffoldMap() IScaffoldMap {
+	return conf.scaffoldMap
 }
 
 // where to create the templates
-func (self *Config) ScaffoldRootDir() string {
-	return self.scaffoldRootDir
+func (conf *Config) ScaffoldRootDir() string {
+	return conf.scaffoldRootDir
 }
 
 // Which template directories to scan for templates
-func (self *Config) TemplateDirs() []string {
-	return self.templateDirs
+func (conf *Config) TemplateDirs() []string {
+	return conf.templateDirs
 }
 
 // the layout to use on the templates for full page rendering
-func (self *Config) LayoutName() string {
-	return self.layoutName
+func (conf *Config) LayoutName() string {
+	return conf.layoutName
 }
 
 // if true the layout will be used even if the request is not an Htmx request, otherwise the template will be rendered without the layout
-func (self *Config) EnableLayoutOnNonHxRequest() bool {
-	return self.enableLayoutOnNonHxRequest
+func (conf *Config) EnableLayoutOnNonHxRequest() bool {
+	return conf.enableLayoutOnNonHxRequest
 }
 
 // a function that is used to supply the layout with data
-func (self *Config) LayoutDataFunc() func(c *gin.Context, data gin.H) {
-	return self.layoutDataFunc
+func (conf *Config) LayoutDataFunc() func(c *gin.Context, data gin.H) {
+	return conf.layoutDataFunc
 }
 
 // HasUI returns true if the configuration has the UI enabled
-func (self *Config) HasUI() bool {
-	return self.uiEnabled
+func (conf *Config) HasUI() bool {
+	return conf.uiEnabled
 }
 
 // HasAPI returns true if the configuration has the API enabled
-func (self *Config) HasAPI() bool {
-	return self.apiEnabled
+func (conf *Config) HasAPI() bool {
+	return conf.apiEnabled
 }
 
 // DefaultDb returns the default database connection
-func (self *Config) DefaultDb() *gorm.DB {
-	return self.defaultDb
+func (conf *Config) DefaultDb() *gorm.DB {
+	return conf.defaultDb
 }
 
 // DefaultRouter returns the default router
-func (self *Config) DefaultRouter() IRouter {
-	return self.defaultRouter
+func (conf *Config) DefaultRouter() IRouter {
+	return conf.defaultRouter
 }
 
 // Index creates a simple index page that lists all the controllers registered with the configuration
-func (conf *Config) Index(template string) *ControllerList {
-	return conf.Controllers().
+func (conf *Config) Index(template string) *Config {
+	conf.Controllers().
 		Index(conf.DefaultRouter(), template, conf)
+    return conf
+}
+
+
+// Index creates OpenAPI spec
+func (conf *Config) OpenAPI(template string) *Config {
+	conf.Controllers().
+		OpenAPI(conf.DefaultRouter(), template, conf)
+    return conf
 }
 
 // Controllers returns the list of controllers registered with the configuration
@@ -185,15 +194,15 @@ func (conf *Config) AutoScaffold() bool {
 // WithScaffoldStrategy sets the strategy to use when creating the scaffolded templates
 // The default is ScaffoldCreateAlways, options are ScaffoldCreateAlways, ScaffoldCreateIfNotExist, ScaffoldCreateNever
 // This option is not used at the moment
-func (self *Config) WithScaffoldStrategy(value ScaffoldStrategy) *Config {
-	self.scaffoldCreateStrategy = value
-	return self
+func (conf *Config) WithScaffoldStrategy(value ScaffoldStrategy) *Config {
+	conf.scaffoldCreateStrategy = value
+	return conf
 }
 
 // WithScaffoldRootDir sets the root directory where the scaffolded templates will be placed
-func (self *Config) WithScaffoldRootDir(value string) *Config {
-	self.scaffoldRootDir = value
-	return self
+func (conf *Config) WithScaffoldRootDir(value string) *Config {
+	conf.scaffoldRootDir = value
+	return conf
 }
 
 // the layout to use on the templates for full page rendering
@@ -221,39 +230,39 @@ func (c *Config) WithEnableLayoutOnNonHxRequest(enableLayoutOnNonHxRequest bool)
 }
 
 // SetAsDefault sets the current configuration as the default configuration
-func (self *Config) SetAsDefault() *Config {
-	config = self
-	return self
+func (conf *Config) SetAsDefault() *Config {
+	config = conf
+	return conf
 }
 
 // WithScaffoldMap sets the scaffold map that will be used to generate the scaffolded templates
-func (self *Config) WithScaffoldMap(scaffoldMap IScaffoldMap) *Config {
-	self.scaffoldMap = scaffoldMap
-	return self
+func (conf *Config) WithScaffoldMap(scaffoldMap IScaffoldMap) *Config {
+	conf.scaffoldMap = scaffoldMap
+	return conf
 }
 
 // WithAPI sets the configuration to enable the API endpoints
-func (self *Config) WithAPI(value bool) *Config {
-	self.apiEnabled = value
-	return self
+func (conf *Config) WithAPI(value bool) *Config {
+	conf.apiEnabled = value
+	return conf
 }
 
 // WithUI sets the configuration to enable the UI endpoints
-func (self *Config) WithUI(value bool) *Config {
-	self.uiEnabled = value
-	return self
+func (conf *Config) WithUI(value bool) *Config {
+	conf.uiEnabled = value
+	return conf
 }
 
 // WithDefaultRouter sets the default router to use when creating the controllers
-func (self *Config) WithDefaultRouter(router IRouter) *Config {
-	self.defaultRouter = router
-	return self
+func (conf *Config) WithDefaultRouter(router IRouter) *Config {
+	conf.defaultRouter = router
+	return conf
 }
 
 // WithDefaultDb sets the default database to use when creating the controllers
-func (self *Config) WithDefaultDb(db *gorm.DB) *Config {
-	self.defaultDb = db
-	return self
+func (conf *Config) WithDefaultDb(db *gorm.DB) *Config {
+	conf.defaultDb = db
+	return conf
 }
 
 func (conf *Config) WithAutoScaffold(value bool) *Config {
@@ -262,7 +271,7 @@ func (conf *Config) WithAutoScaffold(value bool) *Config {
 }
 
 // WithCommandLineArgs sets the configuration from the command line arguments
-func (self *Config) WithCommandLineArgs(args []string) *Config {
+func (conf *Config) WithCommandLineArgs(args []string) *Config {
 	var templateDirs string
 	var layout string
 	var hxAware string
@@ -284,28 +293,28 @@ func (self *Config) WithCommandLineArgs(args []string) *Config {
 		panic(error)
 	}
 	if templateDirs != "" {
-		self.WithTemplateDirs(strings.Split(templateDirs, ",")...)
+		conf.WithTemplateDirs(strings.Split(templateDirs, ",")...)
 	}
 	if layout != "" {
-		self.WithLayoutName(layout)
+		conf.WithLayoutName(layout)
 	}
 	if hxAware != "" {
-		self.WithEnableLayoutOnNonHxRequest(hxAware == "true")
+		conf.WithEnableLayoutOnNonHxRequest(hxAware == "true")
 	}
 	if scaffoldDir != "" {
-		self.WithScaffoldRootDir(scaffoldDir)
+		conf.WithScaffoldRootDir(scaffoldDir)
 	}
 	if scaffoldStrategy != "" {
 		switch scaffoldStrategy {
 		case CmdArgStrategyAlways:
-			self.WithScaffoldStrategy(ScaffoldStrategyAlways)
+			conf.WithScaffoldStrategy(ScaffoldStrategyAlways)
 		case CmdArgStrategyIfNotExists:
-			self.WithScaffoldStrategy(ScaffoldStrategyIfNotExists)
+			conf.WithScaffoldStrategy(ScaffoldStrategyIfNotExists)
 		case CmdArgStrategyNever:
-			self.WithScaffoldStrategy(ScaffoldStrategyNever)
+			conf.WithScaffoldStrategy(ScaffoldStrategyNever)
 		default:
 			panic("Invalid strategy")
 		}
 	}
-	return self
+	return conf
 }

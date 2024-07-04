@@ -12,11 +12,12 @@ func _() {
 	_ = x[ScaffoldTemplateList-1]
 	_ = x[ScaffoldTemplateDetail-2]
 	_ = x[ScaffoldTemplateForm-3]
+	_ = x[ScaffoldTemplateOpenAPI-4]
 }
 
-const _ScaffoldTemplateKind_name = "layoutlistdetailform"
+const _ScaffoldTemplateKind_name = "layoutlistdetailformopenapi"
 
-var _ScaffoldTemplateKind_index = [...]uint8{0, 6, 10, 16, 20}
+var _ScaffoldTemplateKind_index = [...]uint8{0, 6, 10, 16, 20, 27}
 
 func (i ScaffoldTemplateKind) String() string {
 	if i < 0 || i >= ScaffoldTemplateKind(len(_ScaffoldTemplateKind_index)-1) {
