@@ -1,6 +1,5 @@
-build: tidy generate lint
+build: tidy
 	go build ./...
-
 
 run: build
 	go run main.go

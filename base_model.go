@@ -12,9 +12,9 @@ type BaseModel struct {
 }
 
 func (self BaseModel) GetID() uint {
-    return self.ID
+	return self.ID
 }
 
 func (self BaseModel) SetID(id uint) {
-    self.ID = id
+	self.ID = id
 }

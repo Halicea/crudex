@@ -85,7 +85,7 @@ func TestRender_ErrorIfNoUICapabilityIsMatched(t *testing.T) {
 	c, w := faker()
 	c.Request.Header.Set("Accept", "text/html")
 	capabilities := ResponseCapabilities{API: false, UI: false}
-    expected := "Error: No capability to respond for header Accept: text/html"
+	expected := "Error: No capability to respond for header Accept: text/html"
 	_respond(c, nil, "test", "", &capabilities)
 
 	if w.Code != 400 {
@@ -99,13 +99,13 @@ func TestRender_ErrorIfNoUICapabilityIsMatched(t *testing.T) {
 func TestRespond_ErrorIfNoAPICapabilityIsEnabled(t *testing.T) {
 	c, w := faker()
 	c.Request.Header.Set("Accept", "application/json")
-    expected := "Error: No capability to respond for header Accept: application/json"
+	expected := "Error: No capability to respond for header Accept: application/json"
 	assert := func() {
 		if w.Code != 400 {
 			t.Errorf("Expected 400, got %d", w.Code)
 		}
 		if w.Body.String() != expected {
-            t.Errorf("Expected \"%s\", got %s", expected, w.Body.String())
+			t.Errorf("Expected \"%s\", got %s", expected, w.Body.String())
 		}
 	}
 
@@ -127,11 +127,10 @@ func TestRespond_ErrorIfInvalidAcceptHeader(t *testing.T) {
 	}
 }
 
-
 func TestRespond_ShouldOKIfInvalidAcceptHeaderAndOnlyOneCapabilityIsEnabled(t *testing.T) {
 	c, w := faker()
 	c.Request.Header.Set("Accept", "invalidheader")
-    expected := "{\"test\":\"test\"}"
+	expected := "{\"test\":\"test\"}"
 	_respond(c, gin.H{"test": "test"}, "test", "", &ResponseCapabilities{API: true, UI: false})
 	if w.Code != 200 {
 		t.Errorf("Expected 200, got %d", w.Code)

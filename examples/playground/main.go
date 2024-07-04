@@ -5,14 +5,15 @@ import (
 )
 
 type Flower struct {
-    crudex.BaseModel
-    Name  string
-    Color string
+	crudex.BaseModel
+	Name  string
+	Color string
 }
+
 func main() {
 	const tmpl = `#[[.Name]] [[range .Fields]]
     [[.Name]] [[.Type]][[end]]`
 
-    type Conf = crudex.ScaffoldDataModelConfigurator
+	type Conf = crudex.ScaffoldDataModelConfigurator
 	crudex.New[Flower](nil).Scaffold(tmpl, &Conf{TemplateExtension: ".model"})
 }

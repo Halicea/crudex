@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 )
 
-
 var cache = map[string]string{}
 
 // ReadContentsOrDefault reads the file if it exists, otherwise returns the default content.

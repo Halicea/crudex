@@ -21,12 +21,12 @@ func (list *ControllerList) Index(r IRouter, templateFile string, conf IConfig) 
 }
 
 func (list *ControllerList) OpenAPI(r IRouter, templateFile string, conf IConfig) *ControllerList {
-    arr := []ICrudCtrl(*list)
-    GenOpenAPI(templateFile, arr)
-    r.GET("/openapi", func(c *gin.Context) {
-        c.File(templateFile)
-    })
-    return list
+	arr := []ICrudCtrl(*list)
+	GenOpenAPI(templateFile, arr)
+	r.GET("/openapi", func(c *gin.Context) {
+		c.File(templateFile)
+	})
+	return list
 }
 
 func (list *ControllerList) Add(r ...ICrudCtrl) *ControllerList {

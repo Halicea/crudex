@@ -47,9 +47,9 @@ func ParseInputKind(str string) (InputKind, error) {
 type ScaffoldTemplateKind int
 
 const (
-	ScaffoldTemplateLayout ScaffoldTemplateKind = iota //layout
-	ScaffoldTemplateList                               //list
-	ScaffoldTemplateDetail                             //detail
-	ScaffoldTemplateForm                               //form
-    ScaffoldTemplateOpenAPI                            //openapi
+	ScaffoldTemplateLayout  ScaffoldTemplateKind = iota //layout
+	ScaffoldTemplateList                                //list
+	ScaffoldTemplateDetail                              //detail
+	ScaffoldTemplateForm                                //form
+	ScaffoldTemplateOpenAPI                             //openapi
 )

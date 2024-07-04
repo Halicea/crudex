@@ -41,10 +41,10 @@ type Config struct {
 	//Default router
 	defaultRouter IRouter
 
-    // list of the controller registered with the configuration
+	// list of the controller registered with the configuration
 	controllers *ControllerList
 
-    // wether to auto scaffold the templates when a new controller is created
+	// wether to auto scaffold the templates when a new controller is created
 	autoScaffold bool
 }
 
@@ -66,10 +66,10 @@ func GetConfig() IConfig {
 
 func NewConfig() *Config {
 	return &Config{
-		scaffoldCreateStrategy:     ScaffoldStrategyIfNotExists,
-		scaffoldRootDir:            "gen",
-		scaffoldMap:                scaffolds.New(),
-		autoScaffold:               true,
+		scaffoldCreateStrategy: ScaffoldStrategyIfNotExists,
+		scaffoldRootDir:        "gen",
+		scaffoldMap:            scaffolds.New(),
+		autoScaffold:           true,
 
 		templateDirs:               []string{"gen", "templates"},
 		layoutName:                 "index.html",
@@ -79,7 +79,7 @@ func NewConfig() *Config {
 		apiEnabled: true,
 		uiEnabled:  true,
 
-		defaultDb: nil,
+		defaultDb:     nil,
 		defaultRouter: nil,
 
 		controllers: &ControllerList{},
@@ -167,15 +167,14 @@ func (conf *Config) DefaultRouter() IRouter {
 func (conf *Config) Index(template string) *Config {
 	conf.Controllers().
 		Index(conf.DefaultRouter(), template, conf)
-    return conf
+	return conf
 }
-
 
 // Index creates OpenAPI spec
 func (conf *Config) OpenAPI(template string) *Config {
 	conf.Controllers().
 		OpenAPI(conf.DefaultRouter(), template, conf)
-    return conf
+	return conf
 }
 
 // Controllers returns the list of controllers registered with the configuration

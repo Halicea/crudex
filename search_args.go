@@ -5,7 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
-//TODO: Complete this part of the code to allow search and pagination for the models
+
+// TODO: Complete this part of the code to allow search and pagination for the models
 const (
 	SEARCH_OP_EQUAL           = "="
 	SEARCH_OP_NOT_EQUAL       = "<>"
