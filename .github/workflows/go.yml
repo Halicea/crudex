@@ -8,6 +8,8 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+                
+            
 
 jobs:
 
@@ -20,9 +22,10 @@ jobs:
       uses: actions/setup-go@v4
       with:
         go-version: '1.22'
-
     - name: Build
-      run: go build -v ./...
-
+      run: make build
+    - name: Lint
+      uses: golangci/golangci-lint-action@v6.0.1
     - name: Test
-      run: go test -v ./...
+      run: make test
+   
