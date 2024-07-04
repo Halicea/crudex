@@ -12,9 +12,9 @@ func main() {
 	db, _ := gorm.Open(sqlite.Open("sample.db"), &gorm.Config{})
 	db.AutoMigrate(&Car{}, &Driver{})
 
-	crudex.Setup().WithUI(false)
-	crudex.New[Car](db).OnRouter(app.Group("cars"))
-	crudex.New[Driver](db).OnRouter(app.Group("drivers"))
+	crudex.Setup(app, db).WithUI(false)
+	crudex.New[Car]()
+	crudex.New[Driver]()
 
 	app.Run(":8080")
 }
