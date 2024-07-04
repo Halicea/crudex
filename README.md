@@ -113,7 +113,9 @@ There are three parts that you can further customize to your needs:
 
     Behind the scenes crudex uses `gin` handlers, so you can build any route without additional need to learn something new.
     
+
 ## Wishlist
+TODOS Are located on this link [TODO](docs/todo.org)
 
 - [X] **[P1]** Start with tests
 - [X] **[P1]** Add more customization options

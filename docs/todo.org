@@ -1,0 +1,29 @@
+#+title: TODOS 
+
+* Important
+
+** IN-PROGRESS Search, Filtering and pagination support
+   - Without this we have nothing, the search and paagination needs to be easily controllable, to map well with gorm
+   - We need to be able to easily create a search query from a map of strings
+   - The operators for the search should map easily from request parameters to gorm operators
+
+** TODO Debug version should build the templates dynamically, so we can see the changes without restarting the server
+   The idea is to listen on the scaffold templates, and rebuild the templates when they change (just to re-register them with the renderer)
+
+** TODO GraphQL support
+   - We need to be able to easily create a graphql schema from our models.
+   - Libraries like this already exist, we need to make an integration  with some of them, no need to reinvent the wheel
+
+** TODO Improve the admin interface
+   - The default scaffold interface needs to be more complete, to provide better widgets for the different types of fields
+   - To have a better look and feel, and to look more like a real admin interface
+
+** TODO Display relations in the admin interface
+   - We need to be able to display relations in the admin interface
+
+* Things to think about
+** Do we need to get into the adventure of creating a CrudDB service(and interface) so we are not directly coupled to gorm?
+** Model builder
+   Maybe it is good if we create a ui where we can generate new models and relations. This will mean tthat we need to touch the users code, not so sure if it is going to be a good idea
+   or if the users will gain something from it. Maybe we can just provide a way to generate the models from the command line, and let the user do the rest
+   Someething like `rails generate model` but for go, and with the ability to generate relations
