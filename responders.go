@@ -3,6 +3,7 @@ package crudex
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -42,8 +43,9 @@ func RespondWithConfig(c *gin.Context, data gin.H, templateName string, conf ICo
 //
 // If the request does not match the capabilities it will write an error to the response
 func _respond(c *gin.Context, data gin.H, templateName string, layout string, capabilites IResponseCapabilities) {
-	var isApi = c.Request.Header.Get("Accept") == "application/json"
-	var isUi = c.Request.Header.Get("Accept") == "text/html"
+	var isStar = strings.Contains(c.Request.Header.Get("Accept"), "*/*")
+	var isApi = strings.Contains(c.Request.Header.Get("Accept"), "application/json")
+	var isUi = isStar || strings.Contains(c.Request.Header.Get("Accept"), "text/html")
 	var isHxRequest = c.Request.Header.Get("Hx-Request") == "true"
 	hasUI := capabilites.HasUI()
 	hasAPI := capabilites.HasAPI()

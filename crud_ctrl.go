@@ -2,10 +2,9 @@ package crudex
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
-	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -40,30 +39,57 @@ func (self *CrudCtrl[T]) BasePath() string {
 // New creates a new CRUD controller for the provided model
 //
 // It uses the default configuration
-// See `NewWithConfig` for more control over the configuration
-func New[T IModel](db *gorm.DB) *CrudCtrl[T] {
-	return NewWithConfig[T](db, GetConfig())
+// See `NewWithOptions` for more control over the configuration
+func New[T IModel]() *CrudCtrl[T] {
+	conf := GetConfig()
+	db := conf.DefaultDb()
+	modelType := extractType(*new(T))
+	ctrlGroup := conf.DefaultRouter().Group(fmt.Sprintf("/%s", strings.ToLower(modelType.Name())))
+	return NewWithOptions[T](db, ctrlGroup, conf)
 }
 
 // New creates a new CRUD controller for the provided model
 //
 // It uses the provided configuration to define its behaviour
-func NewWithConfig[T IModel](db *gorm.DB, conf IConfig) *CrudCtrl[T] {
+func NewWithOptions[T IModel](db *gorm.DB, router IRouter, conf IConfig) *CrudCtrl[T] {
 	var name = fmt.Sprintf("%T", *new(T))
 	if strings.Contains(name, ".") {
 		name = strings.Split(name, ".")[1]
 	}
-	return &CrudCtrl[T]{
+	res := &CrudCtrl[T]{
 		FormBinder: DefaultFormHandler[T], // default form handler is used if none is provided
 		ModelName:  name,
 		Db:         db,
 		Config:     conf,
+		Router:     router,
 	}
+	if router != nil {
+		res.OnRouter(router)
+	} else {
+		slog.Warn("Router is nil for %s", slog.Any("name", name))
+	}
+	if db == nil {
+		slog.Warn("DB is nil for model", slog.Any("name", name))
+	}
+    if conf.AutoScaffold() {
+        res.ScaffoldDefaults()
+    }
+	return res
 }
 
 // OnRouter attaches the CRUD routes to the provided router
 func (self *CrudCtrl[T]) OnRouter(r IRouter) *CrudCtrl[T] {
 	self.Router = r
+	if r != nil {
+		self.EnableRoutes(r)
+	}
+	return self
+}
+
+func (self *CrudCtrl[T]) EnableRoutes(r IRouter) *CrudCtrl[T] {
+	if r == nil {
+		panic("Router is nil, cannot enable routes")
+	}
 	r.GET("/", self.List)
 
 	if self.Config.HasUI() {
@@ -76,9 +102,9 @@ func (self *CrudCtrl[T]) OnRouter(r IRouter) *CrudCtrl[T] {
 	r.GET("/:id", self.Details)
 	r.POST("/:id", self.Upsert)
 	r.DELETE("/:id", self.Delete)
-
 	return self
 }
+
 func (self *CrudCtrl[T]) ScaffoldDefaults() *CrudCtrl[T] {
 	model := *new(T)
 	rootDir := self.Config.ScaffoldRootDir()
@@ -117,7 +143,6 @@ func (self *CrudCtrl[T]) WithFormBinder(handler FormBinder[T]) *CrudCtrl[T] {
 	return self
 }
 
-// ROUTE HANDLERS
 // List is a handler that lists all the items of the model
 // it is a GET request
 // !Requres the template to be named as modelName-list.html where the modelName is lowercased model name
@@ -227,93 +252,4 @@ func (self *CrudCtrl[T]) Delete(c *gin.Context) {
 	c.Header("HX-Redirect", self.Router.BasePath())
 	c.String(http.StatusOK, "Deleted")
 	c.Abort()
-}
-
-// END: ROUTE HANDLERS
-
-// ScaffoldIndex creates a simple index page that lists all the controllers
-func ScaffoldIndex(r IRouter, fileName string, controllers ...ICrudCtrl) gin.IRoutes {
-	GenLayout(fileName, controllers)
-	return r.GET("/", func(c *gin.Context) {
-		RespondWithConfig(c, gin.H{"Path": r.BasePath()}, filepath.Base(fileName), NewConfig().WithEnableLayoutOnNonHxRequest(false))
-	})
-}
-
-func BindForm[T any](r *http.Request, out *T) error {
-	// Parse the form data from the request.
-	if err := r.ParseForm(); err != nil {
-		return err
-	}
-	// Reflect on the struct to set values.
-	val := reflect.ValueOf(out).Elem()
-	typ := val.Type()
-	for i := 0; i < val.NumField(); i++ {
-		field := val.Field(i)
-		fieldType := typ.Field(i)
-		// Get form value for the field name.
-		formValue := r.FormValue(fieldType.Name)
-		// Check if the field can be set and if the form value is not empty.
-		if field.CanSet() && formValue != "" {
-			// Convert form values to the appropriate field types.
-			// This example assumes all fields are strings for simplicity.
-			// You might need to convert this based on the field type.
-			field.SetString(formValue)
-		}
-	}
-	return nil
-}
-
-// DefaultFormHandler is a default form binder that binds the form data to a model using the form field names as the model field names
-func DefaultFormHandler[T IModel](c *gin.Context, out *T) error {
-	if err := c.Request.ParseForm(); err != nil {
-		return err
-	}
-	val := reflect.ValueOf(out).Elem()
-	typ := val.Type()
-	for i := 0; i < val.NumField(); i++ {
-		field := val.Field(i)
-		fieldType := typ.Field(i)
-		formValue := c.PostForm(fieldType.Name)
-
-		// we only set the field if we are able to do so and the form value is not empty
-		if field.CanSet() && formValue != "" {
-			switch fieldType.Type.Kind() {
-			case reflect.Uint:
-				val, err := strconv.ParseUint(formValue, 10, 64)
-				if err != nil {
-					return err
-				}
-				field.SetUint(val)
-			case reflect.String:
-				field.SetString(formValue)
-			case reflect.Int:
-				val, err := strconv.ParseInt(formValue, 10, 64)
-				if err != nil {
-					return err
-				}
-				field.SetInt(val)
-			case reflect.Float32:
-				val, err := strconv.ParseFloat(formValue, 32)
-				if err != nil {
-					return err
-				}
-				field.SetFloat(val)
-			case reflect.Float64:
-				val, err := strconv.ParseFloat(formValue, 64)
-				if err != nil {
-					return err
-				}
-				field.SetFloat(val)
-			case reflect.Bool:
-				if formValue == "true" || formValue == "checked" || formValue == "1" {
-					field.SetBool(true)
-				} else {
-					field.SetBool(false)
-				}
-			default:
-				return fmt.Errorf("Unsupported type: %s", fieldType.Type.Kind())
-			}
-		}
-	}
-	return nil
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/halicea/crudex/scaffolds"
+	"gorm.io/gorm"
 )
 
 type Config struct {
@@ -33,11 +34,24 @@ type Config struct {
 
 	//Enable UI requests
 	uiEnabled bool
+
+	//Default database
+	defaultDb *gorm.DB
+
+	//Default router
+	defaultRouter IRouter
+
+	controllers *ControllerList
+
+	autoScaffold bool
 }
 
 // NewConfig creates a new configuration crud configuration containing all the defaults
-func Setup() *Config {
-	return NewConfig().SetAsDefault()
+func Setup(router IRouter, db *gorm.DB) *Config {
+	return NewConfig().
+		WithDefaultDb(db).
+		WithDefaultRouter(router).
+		SetAsDefault()
 }
 
 // config is the default configuration
@@ -50,15 +64,23 @@ func GetConfig() IConfig {
 
 func NewConfig() *Config {
 	return &Config{
-		scaffoldCreateStrategy:     SCAFFOLD_ALWAYS,
+		scaffoldCreateStrategy:     ScaffoldStrategyIfNotExists,
 		scaffoldRootDir:            "gen",
 		scaffoldMap:                scaffolds.New(),
+		autoScaffold:               true,
+
+		templateDirs:               []string{"gen", "templates"},
 		layoutName:                 "index.html",
 		enableLayoutOnNonHxRequest: true,
 		layoutDataFunc:             nil,
-		templateDirs:               []string{"gen", "templates"},
-        apiEnabled:                 true,
-        uiEnabled:                  true,
+
+		apiEnabled: true,
+		uiEnabled:  true,
+
+		defaultDb: nil,
+		defaultRouter: nil,
+
+		controllers: &ControllerList{},
 	}
 }
 
@@ -74,15 +96,15 @@ Crudex Configuration:
     Enable Layout On Non Hx Requests: %t
     API Enabled: %t
     UI Enabled: %t
-#############################################`, 
-    self.scaffoldCreateStrategy, 
-    self.scaffoldRootDir, 
-    self.scaffoldMap, 
-    self.templateDirs, 
-    self.layoutName, 
-    self.enableLayoutOnNonHxRequest, 
-    self.apiEnabled, 
-    self.uiEnabled)
+#############################################`,
+		self.scaffoldCreateStrategy,
+		self.scaffoldRootDir,
+		self.scaffoldMap,
+		self.templateDirs,
+		self.layoutName,
+		self.enableLayoutOnNonHxRequest,
+		self.apiEnabled,
+		self.uiEnabled)
 }
 
 // how to create the templates
@@ -117,6 +139,47 @@ func (self *Config) EnableLayoutOnNonHxRequest() bool {
 // a function that is used to supply the layout with data
 func (self *Config) LayoutDataFunc() func(c *gin.Context, data gin.H) {
 	return self.layoutDataFunc
+}
+
+// HasUI returns true if the configuration has the UI enabled
+func (self *Config) HasUI() bool {
+	return self.uiEnabled
+}
+
+// HasAPI returns true if the configuration has the API enabled
+func (self *Config) HasAPI() bool {
+	return self.apiEnabled
+}
+
+// DefaultDb returns the default database connection
+func (self *Config) DefaultDb() *gorm.DB {
+	return self.defaultDb
+}
+
+// DefaultRouter returns the default router
+func (self *Config) DefaultRouter() IRouter {
+	return self.defaultRouter
+}
+
+// Index creates a simple index page that lists all the controllers registered with the configuration
+func (conf *Config) Index(template string) *ControllerList {
+	return conf.Controllers().
+		Index(conf.DefaultRouter(), template, conf)
+}
+
+// Controllers returns the list of controllers registered with the configuration
+func (conf *Config) Controllers() *ControllerList {
+	return conf.controllers
+}
+
+// Add adds the controllers to the configuration
+func (conf *Config) Add(ctrls ...ICrudCtrl) *Config {
+	conf.controllers.Add(ctrls...)
+	return conf
+}
+
+func (conf *Config) AutoScaffold() bool {
+	return conf.autoScaffold
 }
 
 // WithScaffoldStrategy sets the strategy to use when creating the scaffolded templates
@@ -181,14 +244,21 @@ func (self *Config) WithUI(value bool) *Config {
 	return self
 }
 
-// HasUI returns true if the configuration has the UI enabled
-func (self *Config) HasUI() bool {
-	return self.uiEnabled
+// WithDefaultRouter sets the default router to use when creating the controllers
+func (self *Config) WithDefaultRouter(router IRouter) *Config {
+	self.defaultRouter = router
+	return self
 }
 
-// HasAPI returns true if the configuration has the API enabled
-func (self *Config) HasAPI() bool {
-	return self.apiEnabled
+// WithDefaultDb sets the default database to use when creating the controllers
+func (self *Config) WithDefaultDb(db *gorm.DB) *Config {
+	self.defaultDb = db
+	return self
+}
+
+func (conf *Config) WithAutoScaffold(value bool) *Config {
+	conf.autoScaffold = value
+	return conf
 }
 
 // WithCommandLineArgs sets the configuration from the command line arguments
@@ -228,11 +298,11 @@ func (self *Config) WithCommandLineArgs(args []string) *Config {
 	if scaffoldStrategy != "" {
 		switch scaffoldStrategy {
 		case CmdArgStrategyAlways:
-			self.WithScaffoldStrategy(SCAFFOLD_ALWAYS)
+			self.WithScaffoldStrategy(ScaffoldStrategyAlways)
 		case CmdArgStrategyIfNotExists:
-			self.WithScaffoldStrategy(SCAFFOLD_IF_NOT_EXISTS)
+			self.WithScaffoldStrategy(ScaffoldStrategyIfNotExists)
 		case CmdArgStrategyNever:
-			self.WithScaffoldStrategy(SCAFFOLD_NEVER)
+			self.WithScaffoldStrategy(ScaffoldStrategyNever)
 		default:
 			panic("Invalid strategy")
 		}

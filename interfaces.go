@@ -4,6 +4,7 @@ import (
 	"text/template"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // ICrudCtrl is an interface that defines the basic CRUD operations for a model
@@ -47,6 +48,16 @@ type IConfig interface {
 
 	// HasAPI returns true if the response should be rendered as an API
 	HasAPI() bool
+
+    // DefaultDb returns the default database connection
+    DefaultDb() *gorm.DB
+
+    // DefaultRouter returns the default router
+    DefaultRouter() IRouter
+
+
+    // AutoScaffold returns if every controller will scaffold it's ui automatically
+    AutoScaffold() bool
 }
 
 // IResponseCapabilities is an interface that defines the capabilities of the response

@@ -143,6 +143,7 @@ func (md *ScaffoldDataModel) Flush(definition string, strategy ScaffoldStrategy)
 		Delims("[[", "]]").
 		Funcs(config.ScaffoldMap().FuncMap()).
 		Parse(definition))
+
 	tmplFile, err := os.Create(md.TemplateFileName)
 	defer tmplFile.Close()
 	if err != nil {
@@ -236,11 +237,11 @@ func GenLayout(fileName string, controllers []ICrudCtrl) {
 
 func shouldScaffold(strategy ScaffoldStrategy, fileName string) bool {
 	switch strategy {
-	case SCAFFOLD_ALWAYS:
+	case ScaffoldStrategyAlways:
 		return true
-	case SCAFFOLD_NEVER:
+	case ScaffoldStrategyNever:
 		return false
-	case SCAFFOLD_IF_NOT_EXISTS:
+	case ScaffoldStrategyIfNotExists:
 		_, err := os.Stat(fileName)
 		return err != nil
 	default:

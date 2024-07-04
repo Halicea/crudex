@@ -8,9 +8,9 @@ func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
-	_ = x[SCAFFOLD_ALWAYS-0]
-	_ = x[SCAFFOLD_IF_NOT_EXISTS-1]
-	_ = x[SCAFFOLD_NEVER-2]
+	_ = x[ScaffoldStrategyAlways-0]
+	_ = x[ScaffoldStrategyIfNotExists-1]
+	_ = x[ScaffoldStrategyNever-2]
 }
 
 const _ScaffoldStrategy_name = "SCAFFOLD_ALWAYSSCAFFOLD_IF_NOT_EXISTSSCAFFOLD_NEVER"

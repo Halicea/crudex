@@ -10,10 +10,10 @@ const (
 type ScaffoldStrategy int
 
 const (
-	// SCAFFOLD_ALWAYS will always scaffold the model templates
-	SCAFFOLD_ALWAYS ScaffoldStrategy = iota
-	// SCAFFOLD_IF_NOT_EXISTS will only scaffold the model templates if they do not exist
-	SCAFFOLD_IF_NOT_EXISTS
-	// SCAFFOLD_NEVER will never scaffold the model templates
-	SCAFFOLD_NEVER
+	// ScaffoldStrategyAlways will always scaffold the model templates
+	ScaffoldStrategyAlways ScaffoldStrategy = iota
+	// ScaffoldStrategyIfNotExists will only scaffold the model templates if they do not exist
+	ScaffoldStrategyIfNotExists
+	// ScaffoldStrategyNever will never scaffold the model templates
+	ScaffoldStrategyNever
 )
