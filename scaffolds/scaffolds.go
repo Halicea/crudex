@@ -178,11 +178,11 @@ func RenderInputType(modelName string, field reflect.StructField) string {
 	case reflect.String:
 		switch inpTag {
 		case "":
-			return fmt.Sprintf(`<input type="text" name="%s"%s>{{.%s.%s}}</input>`, field.Name, placeholder, modelName, field.Name)
+			return fmt.Sprintf(`<input type="text" name="%s"%s value="{{.%s.%s}}"/>`, field.Name, placeholder, modelName, field.Name)
 		case shared.INPUT_MARKDOWN.String(), shared.INPUT_HTML.String(), shared.INPUT_WYSIWYG.String(), shared.INPUT_TEXT.String():
-			return fmt.Sprintf(`<input type="textarea" name="%s"%s>{{.%s.%s}}</input>`, field.Name, placeholder, modelName, field.Name)
+			return fmt.Sprintf(`<input type="textarea" name="%s"%s value="{{.%s.%s}}"/>`, field.Name, placeholder, modelName, field.Name)
 		case shared.INPUT_DATETIME.String():
-			return fmt.Sprintf(`<input type="datetime" name="%s"%s>{{.%s.%s}}</input>`, field.Name, placeholder, modelName, field.Name)
+			return fmt.Sprintf(`<input type="datetime" name="%s"%s value="{{.%s.%s}}"/>`, field.Name, placeholder, modelName, field.Name)
 		default:
 			panic(fmt.Sprintf("Unsupported input type '%s' specified for %s/%s", inpTag, modelName, field.Name))
 		}
@@ -190,13 +190,13 @@ func RenderInputType(modelName string, field reflect.StructField) string {
 		//TODO: need to make this work better
 		switch inpTag {
 		case "":
-			return fmt.Sprintf(`<input type="number" name="%s"%s>{{.%s.%s}}</input>`, field.Name, placeholder, modelName, field.Name)
+			return fmt.Sprintf(`<input type="number" name="%s"%s value="{{.%s.%s}}"/>`, field.Name, placeholder, modelName, field.Name)
 		default:
-			return fmt.Sprintf(`<input type="number" name="%s"%s>{{.%s.%s}}</input>`, field.Name, placeholder, modelName, field.Name)
+			return fmt.Sprintf(`<input type="number" name="%s"%s value="{{.%s.%s}}"/>`, field.Name, placeholder, modelName, field.Name)
 		}
 
 	case reflect.Bool:
-		return fmt.Sprintf(`<input type="checkbox" name="%s"%s>{{.%s.%s}}</input>`, field.Name, placeholder, modelName, field.Name)
+		return fmt.Sprintf(`<input type="checkbox" name="%s"%s value="{{.%s.%s}}"/>`, field.Name, placeholder, modelName, field.Name)
 	}
 
 	panic(fmt.Sprintf("unsupported type: %s for field %s", field.Type.Kind().String(), field.Name))

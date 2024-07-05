@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	odata "github.com/pboyd04/godata"
 	"gorm.io/gorm"
 )
 
@@ -149,13 +150,13 @@ func (self *CrudCtrl[T]) WithFormBinder(handler FormBinder[T]) *CrudCtrl[T] {
 // !Requres the template to be named as modelName-list.html where the modelName is lowercased model name
 func (self *CrudCtrl[T]) List(c *gin.Context) {
 	var items []T
-	filter, error := NewSearchArgsFromQuery(c)
+	dbRes, error := odata.GetGormSettingsFromGin(c, self.Db)
 	if error != nil {
 		c.String(http.StatusBadRequest, c.Error(error).Error())
 		c.Abort()
 		return
 	}
-	self.Db.Find(&items).Limit(filter.Limit).Offset((filter.Page - 1) * filter.Limit)
+	dbRes.Find(&items)
 	Respond(c,
 		gin.H{fmt.Sprintf("%sList", self.ModelName): &items, "Path": self.Router.BasePath()},
 		fmt.Sprintf("%s-list.html", strings.ToLower(self.ModelName)))

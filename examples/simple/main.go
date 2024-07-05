@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/halicea/crudex"
+	c "github.com/halicea/crudex"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -10,16 +10,33 @@ import (
 func main() {
 	app := gin.New()
 	db, _ := gorm.Open(sqlite.Open("sample.db"), &gorm.Config{})
-	db.AutoMigrate(new(Car), new(Driver))
+	db.AutoMigrate(new(Driver))
+    conf:= c.Setup(app, db). // setup
+        WithUI(true).
+        WithAPI(true).
+        WithAutoScaffold(true). // to generate the templates
+        WithScaffoldStrategy(c.ScaffoldStrategyIfNotExists).
+        Add(
+			c.New[Driver](),
+			c.New[Passenger](),
+		).
+		Index("gen/index.html") //and create index page
 
-	crudex.
-		Setup(app, db).           // setup crudex
-		WithAutoScaffold(true).   // to generate the templates
-		Add(crudex.New[Driver](), // create controllers and register them
-						crudex.New[Car]()).
-		Index("gen/index.html").    //and create index page
-		OpenAPI("gen/openapi.json") // and create openapi spec
+    conf.ScaffoldMap().Export(false)
 
-	app.HTMLRender = crudex.NewRenderer() // attach the crudex renderer
+
+	app.HTMLRender = c.NewRenderer() // attach the c renderer
 	app.Run(":8080")
+}
+
+type Passenger struct {
+	c.BaseModel
+	Name     string
+	Location string
+}
+
+type Driver struct {
+	c.BaseModel
+	Name    string
+	Surname string
 }

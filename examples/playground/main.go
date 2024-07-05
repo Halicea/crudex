@@ -15,5 +15,5 @@ func main() {
     [[.Name]] [[.Type]][[end]]`
 
 	type Conf = crudex.ScaffoldDataModelConfigurator
-	crudex.New[Flower](nil).Scaffold(tmpl, &Conf{TemplateExtension: ".model"})
+	crudex.New[Flower]().Scaffold(tmpl, &Conf{TemplateExtension: ".model"})
 }

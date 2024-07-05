@@ -15,7 +15,8 @@ watch: build
 	air -c .air.toml
 
 example: build
-	cd examples/simple && go run main.go
+	cd examples/simple && go build -o simple
+	cd examples/simple && ./simple
 
 tidy:
 	go mod tidy
@@ -25,4 +26,3 @@ generate:
 
 lint:
 	golangci-lint run
-

@@ -57,9 +57,11 @@ func _respond(c *gin.Context, data gin.H, templateName string, layout string, ca
 		c.JSON(http.StatusOK, data)
 	case hasUI && (isUi || !hasAPI):
 		if isHxRequest || !layoutEnabled {
+            data["IsLayoutEnabled"] = false
 			c.HTML(http.StatusOK, templateName, data)
 		} else {
-			c.HTML(http.StatusOK, layout, data)
+            data["IsLayoutEnabled"] = true
+			c.HTML(http.StatusOK, templateName, data)
 		}
 	default:
 		err := fmt.Errorf("No capability to respond for header Accept: %s", c.Request.Header.Get("Accept"))

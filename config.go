@@ -7,7 +7,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/halicea/crudex/scaffolds"
+	_ "github.com/pboyd04/godata/middleware"
 	"gorm.io/gorm"
+
+    _ "github.com/pboyd04/godata/filter/parser/gorm"
+	odata "github.com/pboyd04/godata/middleware"
 )
 
 type Config struct {
@@ -50,6 +54,7 @@ type Config struct {
 
 // NewConfig creates a new configuration crud configuration containing all the defaults
 func Setup(router IRouter, db *gorm.DB) *Config {
+	router.Use(odata.NewOdataMiddleware(nil).GinMiddleware)
 	return NewConfig().
 		WithDefaultDb(db).
 		WithDefaultRouter(router).
@@ -266,6 +271,7 @@ func (conf *Config) WithDefaultDb(db *gorm.DB) *Config {
 	return conf
 }
 
+// WithAutoScaffold sets the configuration to auto scaffold the templates when a new controller is created
 func (conf *Config) WithAutoScaffold(value bool) *Config {
 	conf.autoScaffold = value
 	return conf
