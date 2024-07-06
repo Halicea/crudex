@@ -157,7 +157,7 @@ func (self *CrudCtrl[T]) List(c *gin.Context) {
 		return
 	}
 	dbRes.Find(&items)
-	Respond(c,
+	self.Respond(c,
 		gin.H{fmt.Sprintf("%sList", self.ModelName): &items, "Path": self.Router.BasePath()},
 		fmt.Sprintf("%s-list.html", strings.ToLower(self.ModelName)))
 }
@@ -172,12 +172,13 @@ func (self *CrudCtrl[T]) Details(c *gin.Context) {
 	if err == nil {
 		var item T
 		self.Db.First(&item, id)
-		Respond(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
+		self.Respond(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
 	} else {
 		_ = c.Error(err)
 		c.String(http.StatusBadRequest, fmt.Sprintf("Invalid ID for %s: %d", self.ModelName, id))
 	}
 }
+
 
 // Form is a handler that shows the form for editing an item of the model
 // it is a GET request
@@ -186,13 +187,13 @@ func (self *CrudCtrl[T]) Form(c *gin.Context) {
 	template := fmt.Sprintf("%s-form.html", strings.ToLower(self.ModelName))
 	idStr := c.Param("id")
 	if idStr == "" {
-		Respond(c, gin.H{"Path": self.Router.BasePath()}, template)
+		self.Respond(c, gin.H{"Path": self.Router.BasePath()}, template)
 	} else {
 		id, err := strconv.ParseUint(idStr, 10, 64)
 		if err == nil {
 			var item T
 			self.Db.First(&item, id)
-			Respond(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
+			self.Respond(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
 		} else {
 			_ = c.Error(err)
 			c.String(http.StatusBadRequest, fmt.Sprintf("Invalid ID for %s: %d", self.ModelName, id))
@@ -252,3 +253,14 @@ func (self *CrudCtrl[T]) Delete(c *gin.Context) {
 	c.String(http.StatusOK, "Deleted")
 	c.Abort()
 }
+
+// Respond is a function creates a response based on the request headers, the data and the template
+func (self *CrudCtrl[T]) Respond(c *gin.Context, data gin.H, templateName string) {
+    RespondWithConfig(200, c, data, templateName, self.Config)
+}
+
+func (self *CrudCtrl[T]) RespondWithStatus(status status, c *gin.Context, data gin.H) {
+{
+    RespondWithConfig(c, data, templateName, self.Config)
+}
+

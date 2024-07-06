@@ -17,13 +17,13 @@ import (
 // it uses the default hxConfig to render the template
 // See `RenderWithConfig` for more control over the rendering
 func Respond(c *gin.Context, data gin.H, templateName string) {
-	RespondWithConfig(c, data, templateName, GetConfig())
+	RespondWithConfig(200, c, data, templateName, GetConfig())
 }
 
 // RespondWithConfig is a function that renders a template with the given data and the render configuration
 // See Render for more information on the rendering
 // See Config for more information on the configuration
-func RespondWithConfig(c *gin.Context, data gin.H, templateName string, conf IConfig) {
+func RespondWithConfig(status uint, c *gin.Context, data gin.H, templateName string, conf IConfig) {
 	if conf.LayoutDataFunc() != nil {
 		config.LayoutDataFunc()(c, data)
 	}
