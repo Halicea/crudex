@@ -1,6 +1,7 @@
 package crudex
 
 import (
+	"net/http"
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +16,7 @@ func (list *ControllerList) Index(r IRouter, templateFile string, conf IConfig) 
 	r.GET("/", func(c *gin.Context) {
 		data := gin.H{"Path": r.BasePath()}
 		template := filepath.Base(templateFile)
-		RespondWithConfig(c, data, template, conf)
+		RespondWithConfig(http.StatusOK, c, data, template, conf)
 	})
 	return list
 }
