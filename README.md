@@ -2,7 +2,7 @@
 
 [![Crudex build](https://github.com/Halicea/crudex/actions/workflows/go.yml/badge.svg)](https://github.com/Halicea/crudex/actions/workflows/go.yml)
 
-The simplest way to build your crud APIs, admin pages (and maybe more).
+Build your apps API, Admin UI, Pages with just a few lines, and customize as you need.
 
 `crudex` does not interfere with your code, it just helps you to build your App faster by providing a set of tools to build your CRUD APIs and admin interfaces.
 
