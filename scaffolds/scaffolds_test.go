@@ -20,6 +20,7 @@ func TestRender_InputTypes(t *testing.T) {
 		"Html": "type=\"textarea\"",
 		"Date": "type=\"datetime\"",
 	}
+
 	tt := reflect.TypeFor[TestStruct]()
 	for i := 0; i < tt.NumField(); i++ {
 		field := tt.FieldByIndex([]int{i})

@@ -4,6 +4,7 @@ gin-bin
 example
 **/example
 .idea/
+coverage.out
 
 # Binaries for programs and plugins
 *.exe

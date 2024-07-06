@@ -43,9 +43,10 @@ func RespondWithConfig(c *gin.Context, data gin.H, templateName string, conf ICo
 //
 // If the request does not match the capabilities it will write an error to the response
 func _respond(c *gin.Context, data gin.H, templateName string, layout string, capabilites IResponseCapabilities) {
-	var isStar = strings.Contains(c.Request.Header.Get("Accept"), "*/*")
+	var isNone = c.Request.Header.Get("Accept") == ""                    // no accept header, we default to json
+	var isStar = strings.Contains(c.Request.Header.Get("Accept"), "*/*") // we default to html
 	var isApi = strings.Contains(c.Request.Header.Get("Accept"), "application/json")
-	var isUi = isStar || strings.Contains(c.Request.Header.Get("Accept"), "text/html")
+	var isUi = strings.Contains(c.Request.Header.Get("Accept"), "text/html")
 	var isHxRequest = c.Request.Header.Get("Hx-Request") == "true"
 	hasUI := capabilites.HasUI()
 	hasAPI := capabilites.HasAPI()
@@ -53,14 +54,15 @@ func _respond(c *gin.Context, data gin.H, templateName string, layout string, ca
 	layoutEnabled := layout != "" && useLayoutOnFullPageLoad
 
 	switch {
-	case hasAPI && (isApi || !hasUI):
+
+	case hasAPI && (isApi || isNone || !hasUI):
 		c.JSON(http.StatusOK, data)
-	case hasUI && (isUi || !hasAPI):
+	case hasUI && (isUi || isStar || !hasAPI):
 		if isHxRequest || !layoutEnabled {
-            data["IsLayoutEnabled"] = false
+			data["IsLayoutEnabled"] = false
 			c.HTML(http.StatusOK, templateName, data)
 		} else {
-            data["IsLayoutEnabled"] = true
+			data["IsLayoutEnabled"] = true
 			c.HTML(http.StatusOK, templateName, data)
 		}
 	default:
