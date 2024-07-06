@@ -258,9 +258,3 @@ func (self *CrudCtrl[T]) Delete(c *gin.Context) {
 func (self *CrudCtrl[T]) Respond(c *gin.Context, data gin.H, templateName string) {
     RespondWithConfig(200, c, data, templateName, self.Config)
 }
-
-func (self *CrudCtrl[T]) RespondWithStatus(status status, c *gin.Context, data gin.H) {
-{
-    RespondWithConfig(c, data, templateName, self.Config)
-}
-
