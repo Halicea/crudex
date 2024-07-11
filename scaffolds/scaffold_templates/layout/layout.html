@@ -1,0 +1,31 @@
+{{/* generated file: [[.TemplateFileName]] */}}
+<!doctype html>
+<html>
+
+<head>
+    <title>Index</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.4.1/dist/flowbite.min.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div class="flex pt-16 overflow-hidden bg-gray-50 dark:bg-gray-900">
+
+    {{template "sidebar.html" .}}
+    <div id="main-content" class="relative w-full h-full overflow-y-auto bg-gray-50 lg:ml-64 dark:bg-gray-900">
+        <main id="main">
+
+        </main>
+    </div>
+    {{define main}}
+    {{end}}
+    {{template "footer.html" .}}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.4.1/dist/flowbite.min.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.7.0"
+        integrity="sha384-EzBXYPt0/T6gxNp0nuPtLkmRpmDBbjg6WmCUZRLXBBwYYmwAUxzlSGej0ARHX0Bo" crossorigin="anonymous"
+        defer></script>
+</body>
+
+</html>

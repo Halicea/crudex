@@ -10,6 +10,8 @@
 ** TODO Debug version should build the templates dynamically, so we can see the changes without restarting the server
    The idea is to listen on the scaffold templates, and rebuild the templates when they change (just to re-register them with the renderer)
 
+   IMPORTANT: Create custom renderer that in debug mode compiles the template on every request
+
 ** TODO GraphQL support
    - We need to be able to easily create a graphql schema from our models.
    - Libraries like this already exist, we need to make an integration  with some of them, no need to reinvent the wheel

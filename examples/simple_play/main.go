@@ -16,7 +16,9 @@ func main() {
 		Index("gen/index.html") //and create index page
 
 	app.HTMLRender = crudex.NewRenderer() // attach the crudex renderer
-    if err:= app.Run(":8080"); err != nil {
+
+
+    if err:=app.Run(":8080"); err != nil {
         panic(err)
     }
 }

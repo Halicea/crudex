@@ -71,9 +71,9 @@ func NewWithOptions[T IModel](db *gorm.DB, router IRouter, conf IConfig) *CrudCt
 	if db == nil {
 		slog.Warn("DB is nil for model", slog.Any("name", name))
 	}
-    if conf.AutoScaffold() {
-        res.ScaffoldDefaults()
-    }
+	if conf.AutoScaffold() {
+		res.ScaffoldDefaults()
+	}
 	return res
 }
 
@@ -108,6 +108,7 @@ func (self *CrudCtrl[T]) EnableRoutes(r IRouter) *CrudCtrl[T] {
 func (self *CrudCtrl[T]) ScaffoldDefaults() *CrudCtrl[T] {
 	model := *new(T)
 	rootDir := self.Config.ScaffoldRootDir()
+
 	if _, err := os.Stat(rootDir); os.IsNotExist(err) {
 		if os.MkdirAll(rootDir, 0755) != nil {
 			panic("Failed to create directory")
@@ -128,7 +129,12 @@ func (self *CrudCtrl[T]) Scaffold(scaffoldTmpl string, conf *ScaffoldDataModelCo
 			panic("Failed to create directory")
 		}
 	}
-	err := NewScaffoldDataModel(model, conf).Flush(scaffoldTmpl, self.Config.ScaffoldStrategy())
+	scafoldModel := NewScaffoldDataModel(model, conf)
+	err := GenTemplate(scaffoldTmpl, scafoldModel, &GenTemplateOptions{
+		Name:             scafoldModel.Name,
+		TemplateFileName: scafoldModel.TemplateFileName,
+		ScaffoldStrategy: GetConfig().ScaffoldStrategy(),
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -150,12 +156,14 @@ func (self *CrudCtrl[T]) List(c *gin.Context) {
 	var items []T
 	filter, error := NewSearchArgsFromQuery(c)
 	if error != nil {
-		c.Error(error)
-		c.String(http.StatusBadRequest, error.Error())
+		err := c.Error(error)
+		c.String(http.StatusBadRequest, err.Error())
 		c.Abort()
 		return
 	}
+
 	self.Db.Find(&items).Limit(filter.Limit).Offset((filter.Page - 1) * filter.Limit)
+
 	Respond(c,
 		gin.H{fmt.Sprintf("%sList", self.ModelName): &items, "Path": self.Router.BasePath()},
 		fmt.Sprintf("%s-list.html", strings.ToLower(self.ModelName)))
@@ -173,7 +181,6 @@ func (self *CrudCtrl[T]) Details(c *gin.Context) {
 		self.Db.First(&item, id)
 		Respond(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
 	} else {
-		c.Error(err)
 		c.String(http.StatusBadRequest, fmt.Sprintf("Invalid ID for %s: %d", self.ModelName, id))
 	}
 }
@@ -193,7 +200,6 @@ func (self *CrudCtrl[T]) Form(c *gin.Context) {
 			self.Db.First(&item, id)
 			Respond(c, gin.H{self.ModelName: item, "Path": fmt.Sprintf("%s/%s", self.Router.BasePath(), idStr)}, template)
 		} else {
-			c.Error(err)
 			c.String(http.StatusBadRequest, fmt.Sprintf("Invalid ID for %s: %d", self.ModelName, id))
 		}
 	}
@@ -206,7 +212,6 @@ func (self *CrudCtrl[T]) Form(c *gin.Context) {
 func (self *CrudCtrl[T]) Upsert(c *gin.Context) {
 	var item T
 	if err := self.FormBinder(c, &item); err != nil {
-		c.Error(err)
 		c.String(http.StatusBadRequest, err.Error())
 		c.Abort()
 		return
@@ -226,7 +231,6 @@ func (self *CrudCtrl[T]) Upsert(c *gin.Context) {
 	res := self.Db.Save(&item)
 
 	if res.Error != nil {
-		c.Error(res.Error)
 		c.String(http.StatusBadRequest, res.Error.Error())
 		c.Abort()
 		return

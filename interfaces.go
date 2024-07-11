@@ -1,6 +1,7 @@
 package crudex
 
 import (
+	"io/fs"
 	"text/template"
 
 	"github.com/gin-gonic/gin"
@@ -27,6 +28,9 @@ type IConfig interface {
 
 	// where to place the scaffolded templates
 	ScaffoldRootDir() string
+
+    // ScaffoldFS returns the file system that contains the scaffolded templates
+    ScaffoldFS() fs.FS
 
 	// the scaffold map contains all the scaffold templates and is used to generate the model templates
 	ScaffoldMap() IScaffoldMap

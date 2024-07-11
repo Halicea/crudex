@@ -3,6 +3,7 @@ package crudex
 import (
 	"flag"
 	"fmt"
+	"io/fs"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,10 @@ type Config struct {
 	scaffoldCreateStrategy ScaffoldStrategy
 	// where to place the scaffolded templates
 	scaffoldRootDir string
-	scaffoldMap     IScaffoldMap
+
+	scaffoldFS fs.FS
+
+	scaffoldMap IScaffoldMap
 
 	// Which template directories to scan for templates
 	templateDirs []string
@@ -64,10 +68,10 @@ func GetConfig() IConfig {
 
 func NewConfig() *Config {
 	return &Config{
-		scaffoldCreateStrategy:     ScaffoldStrategyIfNotExists,
-		scaffoldRootDir:            "gen",
-		scaffoldMap:                scaffolds.New(),
-		autoScaffold:               true,
+		scaffoldCreateStrategy: ScaffoldStrategyIfNotExists,
+		scaffoldRootDir:        "gen",
+		scaffoldMap:            scaffolds.New(),
+		autoScaffold:           true,
 
 		templateDirs:               []string{"gen", "templates"},
 		layoutName:                 "index.html",
@@ -77,7 +81,7 @@ func NewConfig() *Config {
 		apiEnabled: true,
 		uiEnabled:  true,
 
-		defaultDb: nil,
+		defaultDb:     nil,
 		defaultRouter: nil,
 
 		controllers: &ControllerList{},
@@ -119,6 +123,11 @@ func (self *Config) ScaffoldMap() IScaffoldMap {
 // where to create the templates
 func (self *Config) ScaffoldRootDir() string {
 	return self.scaffoldRootDir
+}
+
+// ScaffoldFS returns the file system that contains the scaffolded templates
+func (self *Config) ScaffoldFS() fs.FS {
+	return self.scaffoldFS
 }
 
 // Which template directories to scan for templates
@@ -184,7 +193,6 @@ func (conf *Config) AutoScaffold() bool {
 
 // WithScaffoldStrategy sets the strategy to use when creating the scaffolded templates
 // The default is ScaffoldCreateAlways, options are ScaffoldCreateAlways, ScaffoldCreateIfNotExist, ScaffoldCreateNever
-// This option is not used at the moment
 func (self *Config) WithScaffoldStrategy(value ScaffoldStrategy) *Config {
 	self.scaffoldCreateStrategy = value
 	return self
@@ -196,7 +204,13 @@ func (self *Config) WithScaffoldRootDir(value string) *Config {
 	return self
 }
 
-// the layout to use on the templates for full page rendering
+// ScaffoldFS returns the file system that contains the scaffolded templates
+func (self *Config) WithScaffoldFS(fs fs.FS) *Config {
+	self.scaffoldFS = fs
+	return self
+}
+
+// WithLayoutName sets the layout to use on the templates for full page rendering
 func (c *Config) WithLayoutName(layoutName string) *Config {
 	c.layoutName = layoutName
 	return c
@@ -256,6 +270,9 @@ func (self *Config) WithDefaultDb(db *gorm.DB) *Config {
 	return self
 }
 
+// WithAutoScaffold sets the configuration to automatically generate the scaffolded templates for each controller
+//
+// The ScaffoldStrategy will determine if  the templates are generated or not, see WithScaffoldStrategy for more information.
 func (conf *Config) WithAutoScaffold(value bool) *Config {
 	conf.autoScaffold = value
 	return conf

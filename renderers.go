@@ -9,18 +9,14 @@ import (
 )
 
 func NewRenderer() multitemplate.Renderer {
-	return loadTemplates(config.TemplateDirs()...)
-}
-
-// loadTemplates is a helper function that loads the templates from the given directories
-func loadTemplates(templatesDirs ...string) multitemplate.Renderer {
 	r := multitemplate.NewRenderer()
-
+    templateDirs := GetConfig().TemplateDirs()
 	if gin.IsDebugging() {
-		fmt.Fprint(gin.DefaultWriter, "Loading templates from: ", templatesDirs, "\n")
+		fmt.Fprint(gin.DefaultWriter, "Loading templates from: ", templateDirs, "\n")
 	}
-	for _, templatesDir := range templatesDirs {
-		files, err := filepath.Glob(filepath.Join(templatesDir, "*.html"))
+
+	for _, td := range templateDirs {
+		files, err := filepath.Glob(filepath.Join(td, "*.html"))
 		if err != nil {
 			panic(err)
 		}

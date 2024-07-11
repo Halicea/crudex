@@ -2,6 +2,7 @@ package crudex
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -27,7 +28,11 @@ func RespondWithConfig(c *gin.Context, data gin.H, templateName string, conf ICo
 	if conf.LayoutDataFunc() != nil {
 		config.LayoutDataFunc()(c, data)
 	}
-	_respond(c, data, templateName, conf.LayoutName(), conf)
+	if gin.IsDebugging() {
+		_respondWithScaffold(c, data, templateName, conf.LayoutName(), conf)
+	} else {
+		_respond(c, data, templateName, conf.LayoutName(), conf)
+	}
 }
 
 // _respond is a helper function that renders the data based on the request accept header and the Hx-Request header

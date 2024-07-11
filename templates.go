@@ -2,14 +2,8 @@ package crudex
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
-	"text/template"
-
-	"github.com/gin-gonic/gin"
-	"github.com/halicea/crudex/shared"
 )
 
 var SupportedScaffoldTypes = []reflect.Kind{
@@ -44,7 +38,6 @@ type ScaffoldDataModel struct {
 	// Fields is a slice of reflect.StructField that represent the fields of the model that will be scaffolded
 	//
 	// The fields are filtered to only include the supported types
-
 	Fields []reflect.StructField
 
 	// AllFields is a slice of reflect.StructField that represent all the fields of the model
@@ -111,10 +104,19 @@ func NewScaffoldDataModel(data interface{}, opts *ScaffoldDataModelConfigurator)
 	}
 	fields := []reflect.StructField{}
 	allFields := []reflect.StructField{}
+
 	for i := 0; i < modelType.NumField(); i++ {
 		field := modelType.Field(i)
 		allFields = append(allFields, field)
-		if !contains(SupportedScaffoldTypes, field.Type.Kind()) {
+		fieldIsSupported := false
+		for _, supportedKind := range SupportedScaffoldTypes {
+			if field.Type.Kind() == supportedKind {
+				fieldIsSupported = true
+				break
+			}
+		}
+
+		if !fieldIsSupported {
 			continue
 		}
 		fields = append(fields, field)
@@ -132,123 +134,6 @@ func NewScaffoldDataModel(data interface{}, opts *ScaffoldDataModelConfigurator)
 	}
 }
 
-func (md *ScaffoldDataModel) Flush(definition string, strategy ScaffoldStrategy) error {
-	if !shouldScaffold(strategy, md.TemplateFileName) {
-		if gin.IsDebugging() {
-			fmt.Printf("Skipping scaffold of %s\n", md.TemplateFileName)
-		}
-		return nil
-	}
-	tmpl := template.Must(template.New(md.Name).
-		Delims("[[", "]]").
-		Funcs(config.ScaffoldMap().FuncMap()).
-		Parse(definition))
-
-	tmplFile, err := os.Create(md.TemplateFileName)
-	defer tmplFile.Close()
-	if err != nil {
-		return err
-	}
-	err = tmpl.Execute(tmplFile, md)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func FlushAll(dst string, models ...interface{}) {
-	for _, m := range models {
-		GenDetailTmpl(m, dst)
-		GenListTmpl(m, dst)
-		GenFormTmpl(m, dst)
-	}
-}
-
-func GenDetailTmpl(data interface{}, rootDir string) {
-	err := NewScaffoldDataModel(data, &ScaffoldDataModelConfigurator{
-		RootDir:           rootDir,
-		TemplateExtension: ".html",
-	}).Flush(_scaffoldFor(shared.ScaffoldTemplateDetail), config.ScaffoldStrategy())
-
-	if err != nil {
-		panic(err)
-	}
-}
-
-func GenListTmpl(data interface{}, rootDir string) {
-	err := NewScaffoldDataModel(data, &ScaffoldDataModelConfigurator{
-		RootDir:            rootDir,
-		TemplateNameSuffix: "-list",
-		ModelNameSuffix:    "List",
-		TemplateExtension:  ".html",
-	}).Flush(_scaffoldFor(shared.ScaffoldTemplateList), config.ScaffoldStrategy())
-
-	if err != nil {
-		panic(err)
-	}
-}
-
-func GenFormTmpl(data interface{}, rootDir string) {
-	err := NewScaffoldDataModel(data, &ScaffoldDataModelConfigurator{
-		RootDir:            rootDir,
-		TemplateNameSuffix: "-form",
-		TemplateExtension:  ".html",
-	}).Flush(_scaffoldFor(shared.ScaffoldTemplateForm), config.ScaffoldStrategy())
-
-	if err != nil {
-		panic(err)
-	}
-}
-
-func GenLayout(fileName string, controllers []ICrudCtrl) {
-	if !shouldScaffold(config.ScaffoldStrategy(), fileName) {
-		if gin.IsDebugging() {
-			fmt.Printf("Skipping scaffold of %s\n", fileName)
-		}
-		return
-	}
-
-	data := ScaffoldLayoutDataModel{
-		Menu:             []ScaffoldMenuItem{},
-		TemplateFileName: fileName,
-	}
-
-	for _, ctrl := range controllers {
-		data.Menu = append(data.Menu, ScaffoldMenuItem{
-			Title: ctrl.GetModelName(),
-			Path:  ctrl.BasePath(),
-		})
-	}
-	tmpl := template.Must(template.New(filepath.Base(fileName)).
-		Delims("[[", "]]").
-		Funcs(config.ScaffoldMap().FuncMap()).
-		Parse(_scaffoldFor(shared.ScaffoldTemplateLayout)))
-
-	tmplFile, err := os.Create(fileName)
-	defer tmplFile.Close()
-	if err != nil {
-		panic(err)
-	}
-	err = tmpl.Execute(tmplFile, data)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func shouldScaffold(strategy ScaffoldStrategy, fileName string) bool {
-	switch strategy {
-	case ScaffoldStrategyAlways:
-		return true
-	case ScaffoldStrategyNever:
-		return false
-	case ScaffoldStrategyIfNotExists:
-		_, err := os.Stat(fileName)
-		return err != nil
-	default:
-		return false
-	}
-}
-
 func extractType(data interface{}) reflect.Type {
 	modelType := reflect.TypeOf(data)
 	val := reflect.ValueOf(data)
@@ -256,19 +141,4 @@ func extractType(data interface{}) reflect.Type {
 		modelType = val.Elem().Type()
 	}
 	return modelType
-}
-
-func contains(allows []reflect.Kind, checked reflect.Kind) bool {
-	for _, a := range allows {
-		if a == checked {
-			return true
-		}
-	}
-	return false
-}
-
-func _scaffoldFor(kind shared.ScaffoldTemplateKind) string {
-	key := kind.String()
-	fn := config.ScaffoldMap().Get(key)
-	return fn()
 }
